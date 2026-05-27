@@ -27,14 +27,14 @@ const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
   const activeView = useMemo(() => {
     if (activePage.endsWith('-chat')) {
       const roomName = navItems.find((item) => item.key === activePage)?.label;
-      return <ChatPage roomKey={activePage} roomName={roomName} />;
+      return <ChatPage roomKey={activePage} roomName={roomName} user={user} />;
     }
 
     const views = {
       home: <HomePage />,
-      projects: <ProjectsPage />,
+      projects: <ProjectsPage user={user} />,
       professionals: <ProfessionalsPage />,
-      files: <FilesPage />,
+      files: <FilesPage user={user} />,
       profile: <ProfilePage user={user} />,
       admin: <AdminPage />,
       'oauth-consent': <OAuthConsentPage user={user} />,

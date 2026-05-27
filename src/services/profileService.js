@@ -5,7 +5,7 @@ const getProfiles = async () => {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, full_name, title, organization, discipline, updated_at')
+    .select('id, full_name, title, organization, discipline, expertise_tags, updated_at')
     .order('updated_at', { ascending: false });
 
   if (error) throw error;
@@ -17,7 +17,7 @@ const getCurrentProfile = async (userId) => {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, full_name, title, organization, discipline, bio, updated_at')
+    .select('id, full_name, title, organization, discipline, bio, expertise_tags, updated_at')
     .eq('id', userId)
     .maybeSingle();
 
@@ -34,6 +34,10 @@ const updateCurrentProfile = async (userId, updates) => {
     organization: updates.organization || null,
     discipline: updates.discipline || null,
     bio: updates.bio || null,
+    expertise_tags: updates.expertiseTags
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean),
     updated_at: new Date().toISOString(),
   };
 
@@ -41,7 +45,7 @@ const updateCurrentProfile = async (userId, updates) => {
     .from('profiles')
     .update(safeUpdates)
     .eq('id', userId)
-    .select('id, full_name, title, organization, discipline, bio, updated_at')
+    .select('id, full_name, title, organization, discipline, bio, expertise_tags, updated_at')
     .single();
 
   if (error) throw error;

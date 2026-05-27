@@ -11,6 +11,7 @@ const ProfilePage = ({ user }) => {
     organization: '',
     discipline: '',
     bio: '',
+    expertiseTags: '',
   });
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
@@ -26,6 +27,7 @@ const ProfilePage = ({ user }) => {
             organization: record.organization || '',
             discipline: record.discipline || '',
             bio: record.bio || '',
+            expertiseTags: record.expertise_tags?.join(', ') || '',
           });
         }
       })
@@ -77,6 +79,15 @@ const ProfilePage = ({ user }) => {
         <label>
           Bio
           <textarea name="bio" value={form.bio} onChange={updateField} rows="5" />
+        </label>
+        <label>
+          Expertise tags
+          <input
+            name="expertiseTags"
+            value={form.expertiseTags}
+            onChange={updateField}
+            placeholder="materials science, robotics, clinical research"
+          />
         </label>
         <button type="submit">Update Profile</button>
       </form>

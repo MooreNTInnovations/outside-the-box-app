@@ -7,6 +7,7 @@ create table public.profiles (
   organization text,
   discipline text,
   bio text,
+  expertise_tags text[] not null default '{}',
   role text not null default 'member' check (role in ('member', 'moderator', 'admin')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -170,6 +171,18 @@ on public.room_members for select
 to authenticated
 using (user_id = auth.uid() or public.is_moderator_or_admin());
 
+create policy "room members join public rooms"
+on public.room_members for insert
+to authenticated
+with check (
+  user_id = auth.uid()
+  and exists (
+    select 1 from public.rooms
+    where id = room_id
+      and is_public = true
+  )
+);
+
 create policy "messages read accessible rooms"
 on public.messages for select
 to authenticated
@@ -194,6 +207,32 @@ create policy "project members read accessible"
 on public.project_members for select
 to authenticated
 using (user_id = auth.uid() or public.can_access_project(project_id));
+
+create policy "project members join public or discoverable"
+on public.project_members for insert
+to authenticated
+with check (
+  (
+    user_id = auth.uid()
+    and exists (
+      select 1 from public.projects
+      where id = project_id
+        and visibility in ('public', 'discoverable')
+    )
+  )
+  or exists (
+    select 1 from public.projects
+    where id = project_id
+      and owner_id = auth.uid()
+      and user_id = auth.uid()
+      and role = 'owner'
+  )
+);
+
+create policy "project members leave own membership"
+on public.project_members for delete
+to authenticated
+using (user_id = auth.uid());
 
 create policy "files read accessible"
 on public.files for select
@@ -276,6 +315,11 @@ $$;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
+
+alter publication supabase_realtime add table public.messages;
+alter publication supabase_realtime add table public.projects;
+alter publication supabase_realtime add table public.project_members;
+alter publication supabase_realtime add table public.files;
 
 insert into public.rooms (room_key, name, description, is_system, is_public)
 values

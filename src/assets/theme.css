@@ -55,6 +55,7 @@ button:disabled {
 }
 
 input,
+select,
 textarea {
   width: 100%;
   border: 1px solid var(--line);
@@ -91,7 +92,10 @@ label {
 .auth-form,
 .setup-error,
 .empty-state,
-.profile-form {
+.profile-form,
+.record-form,
+.message-item,
+.record-card {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(10, 18, 34, 0.82);
@@ -163,7 +167,8 @@ label {
 }
 
 .auth-form,
-.profile-form {
+.profile-form,
+.record-form {
   padding: 1.25rem;
   display: grid;
   gap: 1rem;
@@ -275,6 +280,7 @@ label {
 }
 
 .profile-form,
+.record-form,
 .auth-context-panel {
   max-width: 680px;
 }
@@ -286,6 +292,58 @@ label {
   margin-bottom: 1rem;
   color: var(--muted);
   background: rgba(10, 18, 34, 0.72);
+}
+
+.message-list,
+.record-grid {
+  display: grid;
+  gap: 0.8rem;
+  margin: 1rem 0;
+}
+
+.message-item,
+.record-card {
+  padding: 1rem;
+}
+
+.message-item div,
+.record-card div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.message-item time,
+.record-card span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.message-item p,
+.record-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.composer {
+  display: grid;
+  gap: 1rem;
+  max-width: 760px;
+  margin-top: 1rem;
+}
+
+.record-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.record-card h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.record-actions {
+  margin-top: 1rem;
 }
 
 @media (max-width: 920px) {
