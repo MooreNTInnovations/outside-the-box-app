@@ -274,8 +274,18 @@ label {
   margin: 0;
 }
 
-.profile-form {
+.profile-form,
+.auth-context-panel {
   max-width: 680px;
+}
+
+.auth-context-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  color: var(--muted);
+  background: rgba(10, 18, 34, 0.72);
 }
 
 @media (max-width: 920px) {

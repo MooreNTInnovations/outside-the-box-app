@@ -3,6 +3,7 @@ import AdminPage from '../pages/AdminPage';
 import ChatPage from '../pages/ChatPage';
 import FilesPage from '../pages/FilesPage';
 import HomePage from '../pages/HomePage';
+import OAuthConsentPage from '../pages/OAuthConsentPage';
 import ProfessionalsPage from '../pages/ProfessionalsPage';
 import ProfilePage from '../pages/ProfilePage';
 import ProjectsPage from '../pages/ProjectsPage';
@@ -20,8 +21,8 @@ const navItems = [
   { key: 'admin', label: 'Admin Moderation' },
 ];
 
-const WorkspaceShell = ({ user, signOut }) => {
-  const [activePage, setActivePage] = useState('home');
+const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
+  const [activePage, setActivePage] = useState(initialPage);
 
   const activeView = useMemo(() => {
     if (activePage.endsWith('-chat')) {
@@ -36,6 +37,7 @@ const WorkspaceShell = ({ user, signOut }) => {
       files: <FilesPage />,
       profile: <ProfilePage user={user} />,
       admin: <AdminPage />,
+      'oauth-consent': <OAuthConsentPage user={user} />,
     };
 
     return views[activePage] || views.home;
