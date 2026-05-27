@@ -1,5 +1,13 @@
 import { supabase } from './supabaseClient';
 
+const isMembershipPolicyError = (error) =>
+  error?.code === '42501' && error?.message?.includes('room_members');
+
+const membershipPolicyError = () =>
+  new Error(
+    'Room membership is blocked by the current database RLS policy. Run supabase/migrations/20260527_membership_rls_fix.sql in the Supabase SQL Editor, then reload.',
+  );
+
 const getRoomByKeyOrName = async (roomKey, roomName) => {
   if (!supabase) return null;
 
@@ -11,7 +19,11 @@ const getRoomByKeyOrName = async (roomKey, roomName) => {
   query = roomKey ? query.eq('room_key', roomKey) : query.eq('name', roomName);
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    if (isMembershipPolicyError(error)) throw membershipPolicyError();
+    throw error;
+  }
+
   return data;
 };
 

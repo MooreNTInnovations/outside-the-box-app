@@ -132,6 +132,20 @@ as $$
   );
 $$;
 
+create or replace function public.can_join_public_room(target_room_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.rooms
+    where id = target_room_id
+      and is_public = true
+  );
+$$;
+
 create or replace function public.can_access_project(target_project_id uuid)
 returns boolean
 language sql
@@ -141,13 +155,49 @@ as $$
   select exists (
     select 1 from public.projects
     where id = target_project_id
-      and visibility in ('public', 'discoverable')
+      and (
+        visibility in ('public', 'discoverable')
+        or owner_id = auth.uid()
+      )
   )
   or exists (
     select 1 from public.project_members
     where project_id = target_project_id
       and user_id = auth.uid()
   );
+$$;
+
+create or replace function public.can_insert_project_membership(
+  target_project_id uuid,
+  target_user_id uuid,
+  target_role text
+)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select target_user_id = auth.uid()
+    and (
+      (
+        target_role = 'member'
+        and exists (
+          select 1
+          from public.projects
+          where id = target_project_id
+            and visibility in ('public', 'discoverable')
+        )
+      )
+      or (
+        target_role = 'owner'
+        and exists (
+          select 1
+          from public.projects
+          where id = target_project_id
+            and owner_id = auth.uid()
+        )
+      )
+    );
 $$;
 
 create policy "profiles read own"
@@ -174,14 +224,7 @@ using (user_id = auth.uid() or public.is_moderator_or_admin());
 create policy "room members join public rooms"
 on public.room_members for insert
 to authenticated
-with check (
-  user_id = auth.uid()
-  and exists (
-    select 1 from public.rooms
-    where id = room_id
-      and is_public = true
-  )
-);
+with check (user_id = auth.uid() and role = 'member' and public.can_join_public_room(room_id));
 
 create policy "messages read accessible rooms"
 on public.messages for select
@@ -196,7 +239,7 @@ with check (author_id = auth.uid() and public.can_access_room(room_id));
 create policy "projects read accessible"
 on public.projects for select
 to authenticated
-using (visibility in ('public', 'discoverable') or public.can_access_project(id));
+using (owner_id = auth.uid() or visibility in ('public', 'discoverable') or public.can_access_project(id));
 
 create policy "projects insert as owner"
 on public.projects for insert
@@ -211,23 +254,7 @@ using (user_id = auth.uid() or public.can_access_project(project_id));
 create policy "project members join public or discoverable"
 on public.project_members for insert
 to authenticated
-with check (
-  (
-    user_id = auth.uid()
-    and exists (
-      select 1 from public.projects
-      where id = project_id
-        and visibility in ('public', 'discoverable')
-    )
-  )
-  or exists (
-    select 1 from public.projects
-    where id = project_id
-      and owner_id = auth.uid()
-      and user_id = auth.uid()
-      and role = 'owner'
-  )
-);
+with check (public.can_insert_project_membership(project_id, user_id, role));
 
 create policy "project members leave own membership"
 on public.project_members for delete

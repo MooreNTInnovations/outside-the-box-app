@@ -1,5 +1,13 @@
 import { supabase } from './supabaseClient';
 
+const isProjectMembershipPolicyError = (error) =>
+  error?.code === '42501' && error?.message?.includes('project_members');
+
+const projectMembershipPolicyError = () =>
+  new Error(
+    'Project membership is blocked by the current database RLS policy. Run supabase/migrations/20260527_membership_rls_fix.sql in the Supabase SQL Editor, then reload.',
+  );
+
 const getProjects = async (userId) => {
   if (!supabase) return [];
 
@@ -41,7 +49,11 @@ const createProject = async ({ ownerId, name, summary, visibility }) => {
     role: 'owner',
   });
 
-  if (membershipError) throw membershipError;
+  if (membershipError) {
+    if (isProjectMembershipPolicyError(membershipError)) throw projectMembershipPolicyError();
+    throw membershipError;
+  }
+
   return project;
 };
 
@@ -61,7 +73,11 @@ const joinProject = async ({ projectId, userId }) => {
     .select('project_id, user_id, role')
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    if (isProjectMembershipPolicyError(error)) throw projectMembershipPolicyError();
+    throw error;
+  }
+
   return data;
 };
 
