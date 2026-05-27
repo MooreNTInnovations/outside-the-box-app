@@ -1,5 +1,13 @@
 import { supabase } from './supabaseClient';
 
+const isMissingExpertiseTagsColumn = (error) =>
+  error?.code === '42703' && error?.message?.includes('profiles.expertise_tags');
+
+const profileSchemaError = () =>
+  new Error(
+    'Database schema is missing profiles.expertise_tags. Run supabase/migrations/20260527_profile_expertise_tags_hotfix.sql in the Supabase SQL Editor, then reload.',
+  );
+
 const getProfiles = async () => {
   if (!supabase) return [];
 
@@ -8,7 +16,11 @@ const getProfiles = async () => {
     .select('id, full_name, title, organization, discipline, expertise_tags, updated_at')
     .order('updated_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    if (isMissingExpertiseTagsColumn(error)) throw profileSchemaError();
+    throw error;
+  }
+
   return data || [];
 };
 
@@ -21,7 +33,11 @@ const getCurrentProfile = async (userId) => {
     .eq('id', userId)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    if (isMissingExpertiseTagsColumn(error)) throw profileSchemaError();
+    throw error;
+  }
+
   return data;
 };
 
@@ -48,7 +64,11 @@ const updateCurrentProfile = async (userId, updates) => {
     .select('id, full_name, title, organization, discipline, bio, expertise_tags, updated_at')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (isMissingExpertiseTagsColumn(error)) throw profileSchemaError();
+    throw error;
+  }
+
   return data;
 };
 
