@@ -8,6 +8,9 @@ const projectMembershipPolicyError = () =>
     'Project membership is blocked by the current database RLS policy. Run supabase/migrations/20260527_membership_rls_fix.sql in the Supabase SQL Editor, then reload.',
   );
 
+const profileLabel = (profile, fallback) =>
+  profile?.full_name || profile?.email || fallback;
+
 const getProjects = async (userId) => {
   if (!supabase) return [];
 
@@ -24,25 +27,15 @@ const getProjects = async (userId) => {
   }));
 };
 
-const getProjectRoomMessages = async (projectId) => {
-  const roomKeys = [`project-${projectId}`, `project:${projectId}`];
-  const { data: rooms, error: roomsError } = await supabase
-    .from('rooms')
-    .select('id, name, room_key')
-    .in('room_key', roomKeys);
-
-  if (roomsError) throw roomsError;
-  const projectRoom = rooms?.[0];
-  if (!projectRoom) return { room: null, messages: [] };
-
+const getProjectMessages = async (projectId) => {
   const { data: messages, error: messagesError } = await supabase
     .from('messages')
-    .select('id, room_id, author_id, body, created_at')
-    .eq('room_id', projectRoom.id)
+    .select('id, project_id, author_id, body, created_at, profiles:author_id(id, full_name, email)')
+    .eq('project_id', projectId)
     .order('created_at', { ascending: true });
 
   if (messagesError) throw messagesError;
-  return { room: projectRoom, messages: messages || [] };
+  return messages || [];
 };
 
 const getProjectDetail = async ({ projectId, userId }) => {
@@ -50,7 +43,7 @@ const getProjectDetail = async ({ projectId, userId }) => {
 
   const { data: project, error: projectError } = await supabase
     .from('projects')
-    .select('id, name, summary, visibility, owner_id, created_at, updated_at')
+    .select('id, name, summary, visibility, owner_id, created_at, updated_at, profiles:owner_id(id, full_name, email)')
     .eq('id', projectId)
     .maybeSingle();
 
@@ -61,11 +54,10 @@ const getProjectDetail = async ({ projectId, userId }) => {
     { data: members, error: membersError },
     { count: memberCount, error: memberCountError },
     { data: files, error: filesError },
-    discussion,
   ] = await Promise.all([
     supabase
       .from('project_members')
-      .select('project_id, user_id, role, created_at')
+      .select('project_id, user_id, role, created_at, profiles:user_id(id, full_name, email)')
       .eq('project_id', projectId)
       .order('created_at', { ascending: true }),
     supabase
@@ -74,10 +66,9 @@ const getProjectDetail = async ({ projectId, userId }) => {
       .eq('project_id', projectId),
     supabase
       .from('files')
-      .select('id, bucket_id, object_path, display_name, owner_id, room_id, project_id, created_at')
+      .select('id, bucket_id, object_path, display_name, owner_id, room_id, project_id, created_at, profiles:owner_id(id, full_name, email)')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false }),
-    getProjectRoomMessages(projectId),
   ]);
 
   if (membersError) throw membersError;
@@ -86,16 +77,49 @@ const getProjectDetail = async ({ projectId, userId }) => {
 
   const currentUserMembership =
     members?.find((membership) => membership.user_id === userId) || null;
+  const canOpenWorkspace = Boolean(currentUserMembership || project.owner_id === userId);
+  const discussionMessages = canOpenWorkspace ? await getProjectMessages(projectId) : [];
 
   return {
     project,
-    ownerLabel: project.owner_id,
-    members: members || [],
+    ownerLabel: profileLabel(project.profiles, project.owner_id),
+    members: (members || []).map((member) => ({
+      ...member,
+      displayName: profileLabel(member.profiles, member.user_id),
+    })),
     memberCount: memberCount || 0,
     currentUserMembership,
-    files: files || [],
-    discussionRoom: discussion.room,
-    discussionMessages: discussion.messages,
+    files: (files || []).map((file) => ({
+      ...file,
+      ownerLabel: profileLabel(file.profiles, file.owner_id),
+    })),
+    discussionMessages: discussionMessages.map((message) => ({
+      ...message,
+      authorLabel: profileLabel(message.profiles, message.author_id),
+    })),
+  };
+};
+
+const postProjectMessage = async ({ projectId, authorId, body }) => {
+  if (!supabase || !projectId || !authorId) return null;
+
+  const cleanedBody = body.trim();
+  if (!cleanedBody) return null;
+
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      project_id: projectId,
+      author_id: authorId,
+      body: cleanedBody,
+    })
+    .select('id, project_id, author_id, body, created_at, profiles:author_id(id, full_name, email)')
+    .single();
+
+  if (error) throw error;
+  return {
+    ...data,
+    authorLabel: profileLabel(data.profiles, data.author_id),
   };
 };
 
@@ -159,6 +183,17 @@ const joinProject = async ({ projectId, userId }) => {
 const leaveProject = async ({ projectId, userId }) => {
   if (!supabase || !projectId || !userId) return;
 
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('owner_id')
+    .eq('id', projectId)
+    .maybeSingle();
+
+  if (projectError) throw projectError;
+  if (project?.owner_id === userId) {
+    throw new Error('Project owners cannot leave until ownership transfer is available.');
+  }
+
   const { error } = await supabase
     .from('project_members')
     .delete()
@@ -202,6 +237,11 @@ const subscribeToProjectDetail = ({ projectId, onChange }) => {
       { event: '*', schema: 'public', table: 'files', filter: `project_id=eq.${projectId}` },
       onChange,
     )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'messages', filter: `project_id=eq.${projectId}` },
+      onChange,
+    )
     .subscribe();
 
   return () => {
@@ -215,6 +255,7 @@ export {
   getProjects,
   joinProject,
   leaveProject,
+  postProjectMessage,
   subscribeToProjectDetail,
   subscribeToProjects,
 };

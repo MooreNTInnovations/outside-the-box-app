@@ -2,6 +2,7 @@ create extension if not exists pgcrypto;
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
+  email text,
   full_name text,
   title text,
   organization text,
@@ -57,6 +58,16 @@ create table public.project_members (
   created_at timestamptz not null default now(),
   primary key (project_id, user_id)
 );
+
+alter table public.messages
+add column project_id uuid references public.projects(id) on delete cascade;
+
+alter table public.messages
+alter column room_id drop not null;
+
+alter table public.messages
+add constraint messages_room_or_project_check
+check (room_id is not null or project_id is not null);
 
 create table public.files (
   id uuid primary key default gen_random_uuid(),
@@ -200,10 +211,44 @@ as $$
     );
 $$;
 
+create or replace function public.can_collaborate_on_project(target_project_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.projects
+    where id = target_project_id
+      and owner_id = auth.uid()
+  )
+  or exists (
+    select 1
+    from public.project_members
+    where project_id = target_project_id
+      and user_id = auth.uid()
+  );
+$$;
+
 create policy "profiles read own"
 on public.profiles for select
 to authenticated
 using (id = auth.uid() or public.is_moderator_or_admin());
+
+create policy "profiles read project collaborators"
+on public.profiles for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.project_members viewer
+    join public.project_members subject
+      on subject.project_id = viewer.project_id
+    where viewer.user_id = auth.uid()
+      and subject.user_id = profiles.id
+  )
+);
 
 create policy "profiles update own safe fields"
 on public.profiles for update
@@ -235,6 +280,20 @@ create policy "messages insert as self"
 on public.messages for insert
 to authenticated
 with check (author_id = auth.uid() and public.can_access_room(room_id));
+
+create policy "messages read project members"
+on public.messages for select
+to authenticated
+using (project_id is not null and public.can_collaborate_on_project(project_id));
+
+create policy "messages insert project members as self"
+on public.messages for insert
+to authenticated
+with check (
+  author_id = auth.uid()
+  and project_id is not null
+  and public.can_collaborate_on_project(project_id)
+);
 
 create policy "projects read accessible"
 on public.projects for select
@@ -331,8 +390,8 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, full_name)
-  values (new.id, new.raw_user_meta_data ->> 'full_name')
+  insert into public.profiles (id, email, full_name)
+  values (new.id, new.email, new.raw_user_meta_data ->> 'full_name')
   on conflict (id) do nothing;
 
   return new;

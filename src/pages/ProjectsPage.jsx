@@ -7,9 +7,11 @@ import {
   getProjects,
   joinProject,
   leaveProject,
+  postProjectMessage,
   subscribeToProjectDetail,
   subscribeToProjects,
 } from '../services/projectService';
+import { createFileMetadata, uploadFileToStorage } from '../services/fileService';
 
 const emptyDetail = {
   project: null,
@@ -18,7 +20,6 @@ const emptyDetail = {
   memberCount: 0,
   currentUserMembership: null,
   files: [],
-  discussionRoom: null,
   discussionMessages: [],
 };
 
@@ -30,11 +31,16 @@ const ProjectsPage = ({ user, focusRequest }) => {
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [projectDetail, setProjectDetail] = useState(emptyDetail);
   const [form, setForm] = useState({ name: '', summary: '', visibility: 'private' });
+  const [discussionDraft, setDiscussionDraft] = useState('');
+  const [fileForm, setFileForm] = useState({ objectPath: '', displayName: '' });
+  const [selectedFile, setSelectedFile] = useState(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [postingMessage, setPostingMessage] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const loadProjects = () => {
     setLoading(true);
@@ -91,6 +97,10 @@ const ProjectsPage = ({ user, focusRequest }) => {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
   };
 
+  const updateFileField = (event) => {
+    setFileForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  };
+
   const handleCreate = async (event) => {
     event.preventDefault();
     setError('');
@@ -132,6 +142,56 @@ const ProjectsPage = ({ user, focusRequest }) => {
       loadProjectDetail(projectId);
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handlePostMessage = async (event) => {
+    event.preventDefault();
+    setError('');
+    setStatus('');
+    setPostingMessage(true);
+    try {
+      await postProjectMessage({
+        projectId: selectedProjectId,
+        authorId: user?.id,
+        body: discussionDraft,
+      });
+      setDiscussionDraft('');
+      loadProjectDetail(selectedProjectId);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPostingMessage(false);
+    }
+  };
+
+  const handleUploadProjectFile = async (event) => {
+    event.preventDefault();
+    setError('');
+    setStatus('');
+    setUploadingFile(true);
+    try {
+      let objectPath = fileForm.objectPath;
+
+      if (selectedFile) {
+        objectPath = objectPath || `${user.id}/projects/${selectedProjectId}/${Date.now()}-${selectedFile.name}`;
+        await uploadFileToStorage({ file: selectedFile, objectPath });
+      }
+
+      await createFileMetadata({
+        ownerId: user?.id,
+        objectPath,
+        displayName: fileForm.displayName || selectedFile?.name || objectPath,
+        projectId: selectedProjectId,
+      });
+      setSelectedFile(null);
+      setFileForm({ objectPath: '', displayName: '' });
+      setStatus('Project file saved.');
+      loadProjectDetail(selectedProjectId);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingFile(false);
     }
   };
 
@@ -206,7 +266,11 @@ const ProjectsPage = ({ user, focusRequest }) => {
   const renderProjectDetail = () => {
     const detail = projectDetail;
     const project = detail.project;
-    const isMember = Boolean(detail.currentUserMembership);
+    const isOwner = project?.owner_id === user?.id || detail.currentUserMembership?.role === 'owner';
+    const isMember = Boolean(detail.currentUserMembership || isOwner);
+    const membershipLabel = isOwner
+      ? 'owner'
+      : detail.currentUserMembership?.role || 'Not a member';
 
     if (detailLoading) {
       return (
@@ -240,54 +304,44 @@ const ProjectsPage = ({ user, focusRequest }) => {
         </PageHeader>
         {error && <p className="service-error">{error}</p>}
         {status && <p className="service-success">{status}</p>}
-        <section className="project-detail-grid">
-          <article className="detail-panel">
-            <h2>Project Details</h2>
-            <dl className="detail-list">
-              <div>
-                <dt>Created</dt>
-                <dd>{new Date(project.created_at).toLocaleString()}</dd>
-              </div>
-              <div>
-                <dt>Owner</dt>
-                <dd>{detail.ownerLabel}</dd>
-              </div>
-              <div>
-                <dt>Membership</dt>
-                <dd>{isMember ? detail.currentUserMembership.role : 'Not a member'}</dd>
-              </div>
-              <div>
-                <dt>Member count</dt>
-                <dd>{detail.memberCount}</dd>
-              </div>
-            </dl>
-            <div className="record-actions">
-              <button type="button" onClick={() => setSelectedProjectId(null)}>
-                Back to Projects
-              </button>
-              {isMember ? (
-                <button type="button" onClick={() => handleLeave(project.id)}>
-                  Leave Project
-                </button>
-              ) : (
-                <button type="button" onClick={() => handleJoin(project.id)}>
-                  Join Project
-                </button>
-              )}
+        <section className="project-header-panel">
+          <dl className="detail-list project-meta-list">
+            <div>
+              <dt>Created</dt>
+              <dd>{new Date(project.created_at).toLocaleString()}</dd>
             </div>
-          </article>
-          <article className="detail-panel">
-            <h2>Project Actions</h2>
-            <button
-              type="button"
-              disabled={!isMember}
-              onClick={() => workspaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            >
-              Open Project
+            <div>
+              <dt>Owner</dt>
+              <dd>{detail.ownerLabel}</dd>
+            </div>
+            <div>
+              <dt>Membership</dt>
+              <dd>{membershipLabel}</dd>
+            </div>
+            <div>
+              <dt>Member count</dt>
+              <dd>{detail.memberCount}</dd>
+            </div>
+          </dl>
+          <div className="record-actions">
+            <button type="button" onClick={() => setSelectedProjectId(null)}>
+              Back to Projects
             </button>
-            {!isMember && <p>Join this project to open its member workspace.</p>}
-            {isMember && <p>Project workspace is open for live collaboration records.</p>}
-          </article>
+            {isMember ? (
+              <button
+                type="button"
+                disabled={isOwner}
+                onClick={() => handleLeave(project.id)}
+                title={isOwner ? 'Project owners cannot leave until ownership transfer is available.' : undefined}
+              >
+                Leave Project
+              </button>
+            ) : (
+              <button type="button" onClick={() => handleJoin(project.id)}>
+                Join Project
+              </button>
+            )}
+          </div>
         </section>
 
         {!isMember && (
@@ -301,11 +355,25 @@ const ProjectsPage = ({ user, focusRequest }) => {
           <section className="project-workspace" ref={workspaceRef}>
             <article className="detail-panel">
               <h2>Project Discussion</h2>
+              <form className="composer project-composer" onSubmit={handlePostMessage}>
+                <label>
+                  Message
+                  <textarea
+                    value={discussionDraft}
+                    onChange={(event) => setDiscussionDraft(event.target.value)}
+                    rows="3"
+                    required
+                  />
+                </label>
+                <button type="submit" disabled={postingMessage}>
+                  {postingMessage ? 'Posting...' : 'Post Project Message'}
+                </button>
+              </form>
               {detail.discussionMessages.length === 0 && <EmptyState />}
               {detail.discussionMessages.map((message) => (
                 <article className="message-item" key={message.id}>
                   <div>
-                    <strong>{message.author_id === user?.id ? 'You' : message.author_id}</strong>
+                    <strong>{message.author_id === user?.id ? 'You' : message.authorLabel}</strong>
                     <time dateTime={message.created_at}>{new Date(message.created_at).toLocaleString()}</time>
                   </div>
                   <p>{message.body}</p>
@@ -314,23 +382,44 @@ const ProjectsPage = ({ user, focusRequest }) => {
             </article>
             <article className="detail-panel">
               <h2>Project Files</h2>
+              <form className="record-form compact-form" onSubmit={handleUploadProjectFile}>
+                <label>
+                  Upload file
+                  <input
+                    type="file"
+                    onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
+                  />
+                </label>
+                <label>
+                  Storage object path
+                  <input name="objectPath" value={fileForm.objectPath} onChange={updateFileField} />
+                </label>
+                <label>
+                  Display name
+                  <input name="displayName" value={fileForm.displayName} onChange={updateFileField} />
+                </label>
+                <button type="submit" disabled={uploadingFile || (!selectedFile && !fileForm.objectPath)}>
+                  {uploadingFile ? 'Uploading...' : 'Upload Project File'}
+                </button>
+              </form>
               {detail.files.length === 0 && <EmptyState />}
               {detail.files.map((file) => (
                 <article className="record-card" key={file.id}>
                   <div>
                     <h3>{file.display_name || file.object_path}</h3>
-                    <span>{file.bucket_id}</span>
+                    <span>{new Date(file.created_at).toLocaleDateString()}</span>
                   </div>
                   <p>{file.object_path}</p>
+                  <p>Owner: {file.ownerLabel}</p>
                 </article>
               ))}
             </article>
             <article className="detail-panel">
-              <h2>Project Members</h2>
+              <h2>Project Members ({detail.memberCount})</h2>
               {detail.members.length === 0 && <EmptyState />}
               {detail.members.map((member) => (
                 <article className="member-row" key={`${member.project_id}-${member.user_id}`}>
-                  <strong>{member.user_id}</strong>
+                  <strong>{member.displayName}</strong>
                   <span>{member.role}</span>
                 </article>
               ))}

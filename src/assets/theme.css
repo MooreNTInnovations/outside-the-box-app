@@ -486,8 +486,24 @@ label {
   margin: 1rem 0;
 }
 
+.project-workspace {
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr) minmax(240px, 0.7fr);
+  align-items: start;
+}
+
 .project-detail-grid {
   grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.7fr);
+}
+
+.project-header-panel {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  background: rgba(10, 18, 34, 0.78);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
 }
 
 .detail-panel,
@@ -512,6 +528,10 @@ label {
   display: grid;
   gap: 0.8rem;
   margin: 0;
+}
+
+.project-meta-list {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
 .detail-list div {
@@ -548,6 +568,15 @@ label {
   color: var(--muted);
 }
 
+.compact-form {
+  box-shadow: none;
+  margin-bottom: 1rem;
+}
+
+.project-composer {
+  margin-bottom: 1rem;
+}
+
 @media (max-width: 920px) {
   .launch-panel,
   .auth-grid,
@@ -569,6 +598,10 @@ label {
   }
 
   .project-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .project-workspace {
     grid-template-columns: 1fr;
   }
 }
