@@ -1,4 +1,4 @@
-const EmptyState = ({ message = 'No live records found yet. Add records in Supabase or create new content.' }) => (
+const EmptyState = ({ message }) => (
   <section className="empty-state">
     <p>{message}</p>
   </section>

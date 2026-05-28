@@ -71,23 +71,19 @@ const HomePage = ({ user, onNavigate }) => {
       label: 'Complete your profile',
       page: 'profile',
     },
-    dashboard.publicRoomsCount === 0 && {
-      label: 'Open a public room',
-      page: 'collaboration-chat',
-    },
     dashboard.myProjectsCount === 0 && {
-      label: 'Create your first project',
+      label: 'Create or join a project',
       page: 'projects',
       target: 'create-project',
     },
+    dashboard.recentMessagesCount === 0 && {
+      label: 'Start a discussion in a public room',
+      page: 'collaboration-chat',
+    },
     dashboard.myFilesCount === 0 && {
-      label: 'Upload your first file',
+      label: 'Upload project resources',
       page: 'files',
       target: 'upload-file',
-    },
-    {
-      label: 'Invite collaborators coming soon',
-      disabled: true,
     },
   ].filter(Boolean);
 

@@ -95,7 +95,7 @@ const ChatPage = ({ roomKey, roomName, user }) => {
       </PageHeader>
       {error && <p className="service-error">{error}</p>}
       <section className="message-list" aria-live="polite">
-        {messages.length === 0 && <EmptyState />}
+        {messages.length === 0 && <EmptyState message="Start the first discussion." />}
         {messages.map((message) => (
           <article className="message-item" key={message.id}>
             <div>

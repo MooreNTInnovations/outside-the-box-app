@@ -233,7 +233,7 @@ const ProjectsPage = ({ user, focusRequest }) => {
         <button type="submit" disabled={saving}>{saving ? 'Creating...' : 'Create Project'}</button>
       </form>
       {loading && <p className="loading-note">Loading projects...</p>}
-      {!loading && projects.length === 0 && <EmptyState />}
+      {!loading && projects.length === 0 && <EmptyState message="Create or join a project." />}
       <section className="record-grid">
         {projects.map((project) => (
           <article className="record-card project-card" key={project.id}>
@@ -355,6 +355,9 @@ const ProjectsPage = ({ user, focusRequest }) => {
           <section className="project-workspace" ref={workspaceRef}>
             <article className="detail-panel">
               <h2>Project Discussion</h2>
+              {detail.discussionMessages.length === 0 && (
+                <EmptyState message="No project discussion messages yet." />
+              )}
               <form className="composer project-composer" onSubmit={handlePostMessage}>
                 <label>
                   Message
@@ -369,7 +372,6 @@ const ProjectsPage = ({ user, focusRequest }) => {
                   {postingMessage ? 'Posting...' : 'Post Project Message'}
                 </button>
               </form>
-              {detail.discussionMessages.length === 0 && <EmptyState />}
               {detail.discussionMessages.map((message) => (
                 <article className="message-item" key={message.id}>
                   <div>
@@ -382,6 +384,7 @@ const ProjectsPage = ({ user, focusRequest }) => {
             </article>
             <article className="detail-panel">
               <h2>Project Files</h2>
+              {detail.files.length === 0 && <EmptyState message="No project files uploaded yet." />}
               <form className="record-form compact-form" onSubmit={handleUploadProjectFile}>
                 <label>
                   Upload file
@@ -402,7 +405,6 @@ const ProjectsPage = ({ user, focusRequest }) => {
                   {uploadingFile ? 'Uploading...' : 'Upload Project File'}
                 </button>
               </form>
-              {detail.files.length === 0 && <EmptyState />}
               {detail.files.map((file) => (
                 <article className="record-card" key={file.id}>
                   <div>
@@ -416,7 +418,10 @@ const ProjectsPage = ({ user, focusRequest }) => {
             </article>
             <article className="detail-panel">
               <h2>Project Members ({detail.memberCount})</h2>
-              {detail.members.length === 0 && <EmptyState />}
+              {detail.members.length === 0 && <EmptyState message="No project members are visible yet." />}
+              {detail.members.length === 1 && (
+                <EmptyState message="Only one member currently in this project." />
+              )}
               {detail.members.map((member) => (
                 <article className="member-row" key={`${member.project_id}-${member.user_id}`}>
                   <strong>{member.displayName}</strong>

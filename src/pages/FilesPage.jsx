@@ -105,7 +105,7 @@ const FilesPage = ({ user, focusRequest }) => {
           {saving ? 'Saving...' : 'Save File Metadata'}
         </button>
       </form>
-      {files.length === 0 && <EmptyState />}
+      {files.length === 0 && <EmptyState message="No shared files available yet." />}
       <section className="record-grid">
         {files.map((file) => (
           <article className="record-card" key={file.id}>

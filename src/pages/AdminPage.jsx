@@ -183,7 +183,9 @@ const AdminPage = ({ user, currentProfile }) => {
 
       <section className="admin-section">
         <h2>Reports</h2>
-        {snapshot.reports.length === 0 && <EmptyState />}
+        {snapshot.reports.length === 0 && (
+          <EmptyState message="No moderation activity currently requires review." />
+        )}
         {snapshot.reports.map((report) => (
           <article className="admin-row" key={report.id}>
             <div>
@@ -529,7 +531,9 @@ const AdminPage = ({ user, currentProfile }) => {
 
       <section className="admin-section">
         <h2>Admin Actions</h2>
-        {snapshot.adminActions.length === 0 && <EmptyState />}
+        {snapshot.adminActions.length === 0 && (
+          <EmptyState message="No moderation activity currently requires review." />
+        )}
         {snapshot.adminActions.map((action) => (
           <article className="admin-row" key={action.id}>
             <div>

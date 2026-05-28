@@ -96,4 +96,4 @@ npm run build
 4. Create an account from the launch page.
 5. Confirm the email if your Supabase Auth settings require confirmation.
 6. Sign in with the created account.
-7. Verify the workspace shell appears and every page displays: `No live records found yet. Add records in Supabase or create new content.`
+7. Verify the workspace shell appears and empty pages show contextual production guidance instead of demo records.

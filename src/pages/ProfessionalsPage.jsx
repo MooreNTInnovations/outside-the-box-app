@@ -17,7 +17,7 @@ const ProfessionalsPage = () => {
         Live professional profile records will appear here when available.
       </PageHeader>
       {error && <p className="service-error">{error}</p>}
-      {profiles.length === 0 && <EmptyState />}
+      {profiles.length === 0 && <EmptyState message="No professional profiles available yet." />}
       <section className="record-grid">
         {profiles.map((profile) => (
           <article className="record-card" key={profile.id}>

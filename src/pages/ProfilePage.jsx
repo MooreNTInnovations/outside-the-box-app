@@ -58,7 +58,7 @@ const ProfilePage = ({ user }) => {
       </PageHeader>
       {error && <p className="service-error">{error}</p>}
       {status && <p className="service-success">{status}</p>}
-      {!profile && <EmptyState />}
+      {!profile && <EmptyState message="Complete your profile." />}
       <form className="profile-form" onSubmit={handleSubmit}>
         <label>
           Full name

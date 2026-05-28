@@ -13,7 +13,7 @@ const OAuthConsentPage = ({ user }) => (
         authorization flow.
       </p>
     </section>
-    <EmptyState />
+    <EmptyState message="No authorization request is active." />
   </>
 );
 
