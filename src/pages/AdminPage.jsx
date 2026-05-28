@@ -7,6 +7,7 @@ import {
   adminRemoveProjectMembership,
   adminRemoveRoomMembership,
   adminSetProfileRole,
+  adminSetProfileSuspension,
   adminUpdateProject,
   adminUpdateReportStatus,
   adminUpdateRoom,
@@ -25,8 +26,8 @@ const emptySnapshot = {
   adminActions: [],
 };
 
-const roleOptions = ['member', 'moderator', 'admin'];
-const reportStatuses = ['open', 'reviewing', 'resolved', 'dismissed'];
+const roleOptions = ['member', 'verified_professional', 'moderator', 'admin'];
+const reportStatuses = ['open', 'reviewed', 'resolved', 'dismissed'];
 const projectVisibilities = ['private', 'discoverable', 'public'];
 
 const AdminPage = ({ user, currentProfile }) => {
@@ -190,10 +191,15 @@ const AdminPage = ({ user, currentProfile }) => {
           <article className="admin-row" key={report.id}>
             <div>
               <strong>{report.target_type}</strong>
-              <span>{report.reason}</span>
+              <span>
+                {report.reason}
+                {report.room_id ? ` | room ${report.room_id}` : ''}
+                {report.project_id ? ` | project ${report.project_id}` : ''}
+              </span>
             </div>
             <select
               value={reportEdits[report.id] || report.status}
+              disabled={!isAdmin && ['resolved', 'dismissed'].includes(reportEdits[report.id] || report.status)}
               onChange={(event) =>
                 setReportEdits((current) => ({ ...current, [report.id]: event.target.value }))
               }
@@ -239,8 +245,10 @@ const AdminPage = ({ user, currentProfile }) => {
         {snapshot.profiles.map((profile) => (
           <article className="admin-row" key={profile.id}>
             <div>
-              <strong>{profile.full_name || profile.id}</strong>
-              <span>{profile.title || profile.discipline || 'Profile record'}</span>
+              <strong>{profile.full_name || profile.email || profile.id}</strong>
+              <span>
+                {profile.suspended_at ? 'Suspended' : 'Active'} | {profile.title || profile.discipline || 'Profile record'}
+              </span>
             </div>
             <select
               disabled={!isAdmin}
@@ -266,6 +274,25 @@ const AdminPage = ({ user, currentProfile }) => {
               }
             >
               Save Role
+            </button>
+            <button
+              className={profile.suspended_at ? '' : 'danger-button'}
+              type="button"
+              disabled={!isAdmin}
+              onClick={() =>
+                runAction(
+                  () =>
+                    adminSetProfileSuspension({
+                      userId: profile.id,
+                      shouldSuspend: !profile.suspended_at,
+                    }),
+                  profile.suspended_at
+                    ? 'User reactivated and admin action recorded.'
+                    : 'User suspended and admin action recorded.',
+                )
+              }
+            >
+              {profile.suspended_at ? 'Reactivate' : 'Suspend'}
             </button>
           </article>
         ))}
@@ -331,7 +358,7 @@ const AdminPage = ({ user, currentProfile }) => {
               <label className="inline-control">
                 <input
                   type="checkbox"
-                  checked={Boolean(roomEdits[room.id]?.isPublic)}
+                checked={Boolean(roomEdits[room.id]?.isPublic)}
                   onChange={(event) =>
                     setRoomEdits((current) => ({
                       ...current,
@@ -341,6 +368,7 @@ const AdminPage = ({ user, currentProfile }) => {
                 />
                 Public
               </label>
+              <span>{room.archived_at ? 'Archived' : room.visibility || (room.is_public ? 'public' : 'private')}</span>
               <button
                 type="button"
                 onClick={() =>
@@ -540,6 +568,7 @@ const AdminPage = ({ user, currentProfile }) => {
               <strong>{action.action_type}</strong>
               <span>
                 {action.target_type} {action.target_id}
+                {action.target_user_id ? ` | user ${action.target_user_id}` : ''}
               </span>
             </div>
             <time dateTime={action.created_at}>{new Date(action.created_at).toLocaleString()}</time>

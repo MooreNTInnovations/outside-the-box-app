@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
 import { createFileMetadata, getFiles, subscribeToFiles, uploadFileToStorage } from '../services/fileService';
+import { createModerationReport } from '../services/moderationService';
 
 const FilesPage = ({ user, focusRequest }) => {
   const formRef = useRef(null);
@@ -11,6 +12,8 @@ const FilesPage = ({ user, focusRequest }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportReason, setReportReason] = useState('');
   const [saving, setSaving] = useState(false);
 
   const loadFiles = () => {
@@ -64,6 +67,29 @@ const FilesPage = ({ user, focusRequest }) => {
     }
   };
 
+  const submitReport = async (event) => {
+    event.preventDefault();
+    if (!reportTarget) return;
+
+    setError('');
+    setStatus('');
+    try {
+      await createModerationReport({
+        reporterId: user?.id,
+        targetType: 'file',
+        targetId: reportTarget.id,
+        projectId: reportTarget.project_id,
+        roomId: reportTarget.room_id,
+        reason: reportReason,
+      });
+      setReportTarget(null);
+      setReportReason('');
+      setStatus('Report submitted for governance review.');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <>
       <PageHeader title="Shared Files" eyebrow="Storage-Ready Metadata">
@@ -71,6 +97,25 @@ const FilesPage = ({ user, focusRequest }) => {
       </PageHeader>
       {error && <p className="service-error">{error}</p>}
       {status && <p className="service-success">{status}</p>}
+      {reportTarget && (
+        <form className="record-form compact-form" onSubmit={submitReport}>
+          <label>
+            Report reason
+            <textarea
+              value={reportReason}
+              onChange={(event) => setReportReason(event.target.value)}
+              rows="3"
+              required
+            />
+          </label>
+          <div className="record-actions">
+            <button type="submit">Submit Report</button>
+            <button type="button" onClick={() => setReportTarget(null)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
       <form
         aria-label="Upload file metadata"
         className="record-form"
@@ -114,6 +159,9 @@ const FilesPage = ({ user, focusRequest }) => {
               <span>{file.bucket_id}</span>
             </div>
             <p>{file.object_path}</p>
+            <button className="text-button" type="button" onClick={() => setReportTarget(file)}>
+              Report
+            </button>
           </article>
         ))}
       </section>

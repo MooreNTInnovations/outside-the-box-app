@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import Avatar from '../components/Avatar';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
 import {
@@ -12,6 +13,7 @@ import {
   subscribeToProjects,
 } from '../services/projectService';
 import { createFileMetadata, uploadFileToStorage } from '../services/fileService';
+import { createModerationReport } from '../services/moderationService';
 
 const emptyDetail = {
   project: null,
@@ -36,6 +38,8 @@ const ProjectsPage = ({ user, focusRequest }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportReason, setReportReason] = useState('');
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -201,6 +205,52 @@ const ProjectsPage = ({ user, focusRequest }) => {
     setSelectedProjectId(projectId);
   };
 
+  const submitReport = async (event) => {
+    event.preventDefault();
+    if (!reportTarget) return;
+
+    setError('');
+    setStatus('');
+    try {
+      await createModerationReport({
+        reporterId: user?.id,
+        targetType: reportTarget.type,
+        targetId: reportTarget.id,
+        projectId: selectedProjectId,
+        reason: reportReason,
+      });
+      setReportTarget(null);
+      setReportReason('');
+      setStatus('Report submitted for governance review.');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const renderReportForm = () => {
+    if (!reportTarget) return null;
+
+    return (
+      <form className="record-form compact-form" onSubmit={submitReport}>
+        <label>
+          Report reason
+          <textarea
+            value={reportReason}
+            onChange={(event) => setReportReason(event.target.value)}
+            rows="3"
+            required
+          />
+        </label>
+        <div className="record-actions">
+          <button type="submit">Submit Report</button>
+          <button type="button" onClick={() => setReportTarget(null)}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    );
+  };
+
   const renderProjectList = () => (
     <>
       <PageHeader title="Projects" eyebrow="Project Incubation">
@@ -341,7 +391,11 @@ const ProjectsPage = ({ user, focusRequest }) => {
                 Join Project
               </button>
             )}
+            <button type="button" onClick={() => setReportTarget({ type: 'project', id: project.id })}>
+              Report Project
+            </button>
           </div>
+          {renderReportForm()}
         </section>
 
         {!isMember && (
@@ -374,11 +428,21 @@ const ProjectsPage = ({ user, focusRequest }) => {
               </form>
               {detail.discussionMessages.map((message) => (
                 <article className="message-item" key={message.id}>
-                  <div>
-                    <strong>{message.author_id === user?.id ? 'You' : message.authorLabel}</strong>
+                  <div className="message-meta">
+                    <span className="avatar-label">
+                      <Avatar profile={message.authorProfile} label={message.authorLabel} size="sm" />
+                      <strong>{message.author_id === user?.id ? 'You' : message.authorLabel}</strong>
+                    </span>
                     <time dateTime={message.created_at}>{new Date(message.created_at).toLocaleString()}</time>
                   </div>
                   <p>{message.body}</p>
+                  <button
+                    className="text-button"
+                    type="button"
+                    onClick={() => setReportTarget({ type: 'message', id: message.id })}
+                  >
+                    Report
+                  </button>
                 </article>
               ))}
             </article>
@@ -413,6 +477,13 @@ const ProjectsPage = ({ user, focusRequest }) => {
                   </div>
                   <p>{file.object_path}</p>
                   <p>Owner: {file.ownerLabel}</p>
+                  <button
+                    className="text-button"
+                    type="button"
+                    onClick={() => setReportTarget({ type: 'file', id: file.id })}
+                  >
+                    Report
+                  </button>
                 </article>
               ))}
             </article>
@@ -424,7 +495,10 @@ const ProjectsPage = ({ user, focusRequest }) => {
               )}
               {detail.members.map((member) => (
                 <article className="member-row" key={`${member.project_id}-${member.user_id}`}>
-                  <strong>{member.displayName}</strong>
+                  <span className="avatar-label">
+                    <Avatar profile={member.profile} label={member.displayName} size="sm" />
+                    <strong>{member.displayName}</strong>
+                  </span>
                   <span>{member.role}</span>
                 </article>
               ))}

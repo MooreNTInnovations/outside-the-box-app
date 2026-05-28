@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
+import Avatar from '../components/Avatar';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
+import { createModerationReport } from '../services/moderationService';
 import { getProfileById, getProfiles } from '../services/profileService';
 
-const ProfessionalsPage = () => {
+const ProfessionalsPage = ({ user }) => {
   const [profiles, setProfiles] = useState([]);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [selectedProfileId, setSelectedProfileId] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [reportReason, setReportReason] = useState('');
   const [error, setError] = useState('');
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
     getProfiles().then(setProfiles).catch((err) => setError(err.message));
@@ -36,6 +40,26 @@ const ProfessionalsPage = () => {
     setError('');
   };
 
+  const submitProfileReport = async (event) => {
+    event.preventDefault();
+    if (!selectedProfile) return;
+
+    setError('');
+    setStatus('');
+    try {
+      await createModerationReport({
+        reporterId: user?.id,
+        targetType: 'profile',
+        targetId: selectedProfile.id,
+        reason: reportReason,
+      });
+      setReportReason('');
+      setStatus('Report submitted for governance review.');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const displayValue = (value) => value || 'Not provided';
 
   const renderProfileName = (profile) =>
@@ -53,12 +77,14 @@ const ProfessionalsPage = () => {
         <button type="button" onClick={backToDirectory}>
           Back to Professionals
         </button>
+        {status && <p className="service-success">{status}</p>}
         {loadingProfile && <p className="loading-note">Loading profile...</p>}
         {!loadingProfile && !selectedProfile && (
           <EmptyState message="Profile record is not available." />
         )}
         {!loadingProfile && selectedProfile && (
           <section className="detail-panel profile-detail-panel">
+            <Avatar profile={selectedProfile} size="lg" />
             <h2>{displayValue(selectedProfile.full_name)}</h2>
             <dl className="detail-list">
               <div>
@@ -100,6 +126,18 @@ const ProfessionalsPage = () => {
                 <dd>{displayValue(selectedProfile.role)}</dd>
               </div>
             </dl>
+            <form className="record-form compact-form" onSubmit={submitProfileReport}>
+              <label>
+                Report profile
+                <textarea
+                  value={reportReason}
+                  onChange={(event) => setReportReason(event.target.value)}
+                  rows="3"
+                  required
+                />
+              </label>
+              <button type="submit">Submit Report</button>
+            </form>
           </section>
         )}
       </>
@@ -123,6 +161,7 @@ const ProfessionalsPage = () => {
                   type="button"
                   onClick={() => openProfile(profile.id)}
                 >
+                  <Avatar profile={profile} label={renderProfileName(profile)} size="sm" />
                   {renderProfileName(profile)}
                 </button>
               </h2>

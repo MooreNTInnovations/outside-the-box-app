@@ -8,6 +8,7 @@ import ProfessionalsPage from '../pages/ProfessionalsPage';
 import ProfilePage from '../pages/ProfilePage';
 import ProjectsPage from '../pages/ProjectsPage';
 import { getCurrentProfile } from '../services/profileService';
+import Avatar from './Avatar';
 import BrandMark from './BrandMark';
 
 const navItems = [
@@ -15,10 +16,12 @@ const navItems = [
   { key: 'collaboration-chat', label: 'Collaboration Chat' },
   { key: 'ideas-chat', label: 'Ideas Chat' },
   { key: 'general-chat', label: 'General Chat' },
+  { key: 'chat-rooms', label: 'Chat Rooms' },
   { key: 'projects', label: 'Projects' },
   { key: 'professionals', label: 'Professionals' },
   { key: 'files', label: 'Shared Files' },
   { key: 'profile', label: 'Profile' },
+  { key: 'admin-moderator-channel', label: 'Admin Moderator Channel' },
   { key: 'admin', label: 'Admin Moderation' },
 ];
 
@@ -37,7 +40,10 @@ const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
     const canViewAdmin =
       currentProfile?.role === 'admin' || currentProfile?.role === 'moderator';
 
-    return navItems.filter((item) => item.key !== 'admin' || canViewAdmin);
+    return navItems.filter(
+      (item) =>
+        !['admin', 'admin-moderator-channel'].includes(item.key) || canViewAdmin,
+    );
   }, [currentProfile?.role]);
 
   const navigateTo = (page, target = null) => {
@@ -46,17 +52,29 @@ const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
   };
 
   const activeView = useMemo(() => {
+    if (activePage === 'admin-moderator-channel') {
+      return (
+        <ChatPage
+          roomKey="admin-moderator-channel"
+          roomName="Admin Moderator Channel"
+          user={user}
+          currentProfile={currentProfile}
+        />
+      );
+    }
+
     if (activePage.endsWith('-chat')) {
       const roomName = navItems.find((item) => item.key === activePage)?.label;
-      return <ChatPage roomKey={activePage} roomName={roomName} user={user} />;
+      return <ChatPage roomKey={activePage} roomName={roomName} user={user} currentProfile={currentProfile} />;
     }
 
     const views = {
       home: <HomePage user={user} currentProfile={currentProfile} onNavigate={navigateTo} />,
+      'chat-rooms': <ChatPage user={user} currentProfile={currentProfile} />,
       projects: <ProjectsPage user={user} focusRequest={focusRequest} />,
-      professionals: <ProfessionalsPage />,
+      professionals: <ProfessionalsPage user={user} />,
       files: <FilesPage user={user} focusRequest={focusRequest} />,
-      profile: <ProfilePage user={user} />,
+      profile: <ProfilePage user={user} onProfileUpdated={setCurrentProfile} />,
       admin: <AdminPage user={user} currentProfile={currentProfile} />,
       'oauth-consent': <OAuthConsentPage user={user} />,
     };
@@ -83,7 +101,10 @@ const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
       </aside>
       <div className="workspace-main">
         <header className="topbar">
-          <span>{user?.email}</span>
+          <span className="avatar-label">
+            <Avatar profile={currentProfile} label={user?.email} size="sm" />
+            <span>{user?.email}</span>
+          </span>
           <button type="button" onClick={signOut}>
             Sign Out
           </button>

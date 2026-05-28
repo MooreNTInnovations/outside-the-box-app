@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient';
 
+const AVATAR_BUCKET = 'profile-avatars';
+const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024;
+
 const isMissingExpertiseTagsColumn = (error) =>
   error?.code === '42703' && error?.message?.includes('profiles.expertise_tags');
 
@@ -13,7 +16,7 @@ const getProfiles = async () => {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, email, full_name, title, organization, discipline, expertise_tags, role, updated_at')
+    .select('id, email, full_name, title, organization, discipline, expertise_tags, role, avatar_path, updated_at')
     .order('updated_at', { ascending: false });
 
   if (error) {
@@ -29,7 +32,7 @@ const getProfileById = async (profileId) => {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, email, full_name, title, organization, discipline, bio, expertise_tags, role, updated_at')
+    .select('id, email, full_name, title, organization, discipline, bio, expertise_tags, role, avatar_path, updated_at')
     .eq('id', profileId)
     .maybeSingle();
 
@@ -46,7 +49,7 @@ const getCurrentProfile = async (userId) => {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, full_name, title, organization, discipline, bio, expertise_tags, role, updated_at')
+    .select('id, email, full_name, title, organization, discipline, bio, expertise_tags, role, avatar_path, updated_at')
     .eq('id', userId)
     .maybeSingle();
 
@@ -78,7 +81,7 @@ const updateCurrentProfile = async (userId, updates) => {
     .from('profiles')
     .update(safeUpdates)
     .eq('id', userId)
-    .select('id, full_name, title, organization, discipline, bio, expertise_tags, role, updated_at')
+    .select('id, email, full_name, title, organization, discipline, bio, expertise_tags, role, avatar_path, updated_at')
     .single();
 
   if (error) {
@@ -89,4 +92,56 @@ const updateCurrentProfile = async (userId, updates) => {
   return data;
 };
 
-export { getCurrentProfile, getProfileById, getProfiles, updateCurrentProfile };
+const getAvatarUrl = (avatarPath) => {
+  if (!supabase || !avatarPath) return '';
+
+  const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(avatarPath);
+  return data?.publicUrl || '';
+};
+
+const uploadProfileAvatar = async ({ userId, file }) => {
+  if (!supabase || !userId || !file) return null;
+
+  if (!file.type?.startsWith('image/')) {
+    throw new Error('Profile photo must be an image file.');
+  }
+
+  if (file.size > MAX_AVATAR_SIZE_BYTES) {
+    throw new Error('Profile photo must be 2MB or smaller.');
+  }
+
+  const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const objectPath = `${userId}/${Date.now()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .upload(objectPath, file, {
+      cacheControl: '3600',
+      contentType: file.type,
+      upsert: true,
+    });
+
+  if (uploadError) throw uploadError;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      avatar_path: objectPath,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId)
+    .select('id, email, full_name, title, organization, discipline, bio, expertise_tags, role, avatar_path, updated_at')
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export {
+  getAvatarUrl,
+  getCurrentProfile,
+  getProfileById,
+  getProfiles,
+  updateCurrentProfile,
+  uploadProfileAvatar,
+};

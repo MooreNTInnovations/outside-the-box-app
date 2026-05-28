@@ -30,7 +30,7 @@ const getProjects = async (userId) => {
 const getProjectMessages = async (projectId) => {
   const { data: messages, error: messagesError } = await supabase
     .from('messages')
-    .select('id, project_id, author_id, body, created_at, profiles:author_id(id, full_name, email)')
+    .select('id, project_id, author_id, body, created_at, profiles:author_id(id, full_name, email, avatar_path)')
     .eq('project_id', projectId)
     .order('created_at', { ascending: true });
 
@@ -43,7 +43,7 @@ const getProjectDetail = async ({ projectId, userId }) => {
 
   const { data: project, error: projectError } = await supabase
     .from('projects')
-    .select('id, name, summary, visibility, owner_id, created_at, updated_at, profiles:owner_id(id, full_name, email)')
+    .select('id, name, summary, visibility, owner_id, created_at, updated_at, profiles:owner_id(id, full_name, email, avatar_path)')
     .eq('id', projectId)
     .maybeSingle();
 
@@ -57,7 +57,7 @@ const getProjectDetail = async ({ projectId, userId }) => {
   ] = await Promise.all([
     supabase
       .from('project_members')
-      .select('project_id, user_id, role, created_at, profiles:user_id(id, full_name, email)')
+      .select('project_id, user_id, role, created_at, profiles:user_id(id, full_name, email, avatar_path)')
       .eq('project_id', projectId)
       .order('created_at', { ascending: true }),
     supabase
@@ -66,7 +66,7 @@ const getProjectDetail = async ({ projectId, userId }) => {
       .eq('project_id', projectId),
     supabase
       .from('files')
-      .select('id, bucket_id, object_path, display_name, owner_id, room_id, project_id, created_at, profiles:owner_id(id, full_name, email)')
+      .select('id, bucket_id, object_path, display_name, owner_id, room_id, project_id, created_at, profiles:owner_id(id, full_name, email, avatar_path)')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false }),
   ]);
@@ -86,6 +86,7 @@ const getProjectDetail = async ({ projectId, userId }) => {
     members: (members || []).map((member) => ({
       ...member,
       displayName: profileLabel(member.profiles, member.user_id),
+      profile: member.profiles || null,
     })),
     memberCount: memberCount || 0,
     currentUserMembership,
@@ -96,6 +97,7 @@ const getProjectDetail = async ({ projectId, userId }) => {
     discussionMessages: discussionMessages.map((message) => ({
       ...message,
       authorLabel: profileLabel(message.profiles, message.author_id),
+      authorProfile: message.profiles || null,
     })),
   };
 };
@@ -113,13 +115,14 @@ const postProjectMessage = async ({ projectId, authorId, body }) => {
       author_id: authorId,
       body: cleanedBody,
     })
-    .select('id, project_id, author_id, body, created_at, profiles:author_id(id, full_name, email)')
+    .select('id, project_id, author_id, body, created_at, profiles:author_id(id, full_name, email, avatar_path)')
     .single();
 
   if (error) throw error;
   return {
     ...data,
     authorLabel: profileLabel(data.profiles, data.author_id),
+    authorProfile: data.profiles || null,
   };
 };
 

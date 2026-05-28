@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import Avatar from '../components/Avatar';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
-import { getCurrentProfile, updateCurrentProfile } from '../services/profileService';
+import { getCurrentProfile, updateCurrentProfile, uploadProfileAvatar } from '../services/profileService';
 
-const ProfilePage = ({ user }) => {
+const ProfilePage = ({ user, onProfileUpdated }) => {
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState({
     fullName: '',
@@ -15,6 +16,7 @@ const ProfilePage = ({ user }) => {
   });
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
     getCurrentProfile(user?.id)
@@ -45,9 +47,30 @@ const ProfilePage = ({ user }) => {
     try {
       const updated = await updateCurrentProfile(user.id, form);
       setProfile(updated);
+      onProfileUpdated?.(updated);
       setStatus('Profile updated.');
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setError('');
+    setStatus('');
+    setUploadingAvatar(true);
+    try {
+      const updated = await uploadProfileAvatar({ userId: user.id, file });
+      setProfile(updated);
+      onProfileUpdated?.(updated);
+      setStatus('Profile photo updated.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingAvatar(false);
+      event.target.value = '';
     }
   };
 
@@ -59,6 +82,15 @@ const ProfilePage = ({ user }) => {
       {error && <p className="service-error">{error}</p>}
       {status && <p className="service-success">{status}</p>}
       {!profile && <EmptyState message="Complete your profile." />}
+      <section className="profile-avatar-panel">
+        <Avatar profile={profile} label={user?.email} size="lg" />
+        <label>
+          Profile photo
+          <input type="file" accept="image/*" onChange={handleAvatarUpload} />
+        </label>
+        <p>Image files only. Maximum size: 2MB.</p>
+        {uploadingAvatar && <p className="loading-note">Uploading profile photo...</p>}
+      </section>
       <form className="profile-form" onSubmit={handleSubmit}>
         <label>
           Full name

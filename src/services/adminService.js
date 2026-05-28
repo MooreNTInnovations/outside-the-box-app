@@ -32,7 +32,7 @@ const getAdminSnapshot = async (userId) => {
   if (!canViewAdmin) {
     return {
       currentProfile,
-      profiles: [],
+    profiles: [],
       reports: [],
       projects: [],
       rooms: [],
@@ -55,15 +55,15 @@ const getAdminSnapshot = async (userId) => {
     files,
     adminActions,
   ] = await Promise.all([
-    readTable('profiles', 'id, full_name, discipline, organization, title, role, updated_at', 'updated_at'),
-    readTable('reports', 'id, reporter_id, target_type, target_id, reason, status, created_at'),
+    readTable('profiles', 'id, email, full_name, discipline, organization, title, role, suspended_at, avatar_path, updated_at', 'updated_at'),
+    readTable('reports', 'id, reporter_id, target_type, target_id, room_id, project_id, reason, status, created_at, updated_at'),
     readTable('projects', 'id, owner_id, name, summary, visibility, created_at, updated_at', 'updated_at'),
-    readTable('rooms', 'id, room_key, name, description, is_public, is_system, created_at'),
+    readTable('rooms', 'id, room_key, name, description, is_public, is_system, visibility, owner_id, archived_at, created_at, updated_at'),
     readTable('messages', 'id, room_id, author_id, body, created_at'),
-    readTable('room_members', 'room_id, user_id, role, created_at'),
+    readTable('room_members', 'room_id, user_id, role, status, invited_by, created_at'),
     readTable('project_members', 'project_id, user_id, role, created_at'),
     readTable('files', 'id, bucket_id, object_path, display_name, owner_id, room_id, project_id, created_at'),
-    readTable('admin_actions', 'id, actor_id, action_type, target_type, target_id, notes, created_at'),
+    readTable('admin_actions', 'id, actor_id, target_user_id, action_type, target_type, target_id, notes, details, created_at'),
   ]);
 
   return {
@@ -89,6 +89,12 @@ const rpc = async (name, params) => {
 
 const adminSetProfileRole = ({ userId, role }) =>
   rpc('admin_set_profile_role', { target_user_id: userId, next_role: role });
+
+const adminSetProfileSuspension = ({ userId, shouldSuspend }) =>
+  rpc('admin_set_profile_suspension', {
+    target_user_id: userId,
+    should_suspend: shouldSuspend,
+  });
 
 const adminUpdateReportStatus = ({ reportId, status }) =>
   rpc('admin_update_report_status', { target_report_id: reportId, next_status: status });
@@ -144,6 +150,7 @@ export {
   adminRemoveProjectMembership,
   adminRemoveRoomMembership,
   adminSetProfileRole,
+  adminSetProfileSuspension,
   adminUpdateProject,
   adminUpdateReportStatus,
   adminUpdateRoom,
