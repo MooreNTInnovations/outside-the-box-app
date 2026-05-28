@@ -12,7 +12,7 @@ const defaultDashboard = {
   isModeratorOrAdmin: false,
 };
 
-const HomePage = ({ user }) => {
+const HomePage = ({ user, onNavigate }) => {
   const [dashboard, setDashboard] = useState(defaultDashboard);
   const [error, setError] = useState('');
 
@@ -27,26 +27,33 @@ const HomePage = ({ user }) => {
       label: 'My profile completion',
       value: `${dashboard.profileCompletion.percent}%`,
       detail: `${dashboard.profileCompletion.completedFields} of ${dashboard.profileCompletion.totalFields} fields complete`,
+      page: 'profile',
     },
     {
       label: 'Public rooms available',
       value: dashboard.publicRoomsCount,
       detail: 'Live rooms visible under Supabase RLS',
+      page: 'collaboration-chat',
     },
     {
       label: 'My recent messages',
       value: dashboard.recentMessagesCount,
       detail: 'Messages posted in the last 30 days',
+      page: 'collaboration-chat',
     },
     {
       label: 'My projects',
       value: dashboard.myProjectsCount,
       detail: 'Projects connected through membership',
+      page: 'projects',
+      target: 'create-project',
     },
     {
       label: 'My files',
       value: dashboard.myFilesCount,
       detail: 'File metadata records owned by you',
+      page: 'files',
+      target: 'upload-file',
     },
   ];
 
@@ -55,15 +62,33 @@ const HomePage = ({ user }) => {
       label: 'Pending reports',
       value: dashboard.pendingReportsCount || 0,
       detail: 'Open moderation reports',
+      page: 'admin',
     });
   }
 
   const emptyStates = [
-    !dashboard.profileCompletion.isComplete && 'Complete your profile',
-    dashboard.publicRoomsCount === 0 && 'Open a public room',
-    dashboard.myProjectsCount === 0 && 'Create your first project',
-    dashboard.myFilesCount === 0 && 'Upload your first file',
-    'Invite collaborators coming soon',
+    !dashboard.profileCompletion.isComplete && {
+      label: 'Complete your profile',
+      page: 'profile',
+    },
+    dashboard.publicRoomsCount === 0 && {
+      label: 'Open a public room',
+      page: 'collaboration-chat',
+    },
+    dashboard.myProjectsCount === 0 && {
+      label: 'Create your first project',
+      page: 'projects',
+      target: 'create-project',
+    },
+    dashboard.myFilesCount === 0 && {
+      label: 'Upload your first file',
+      page: 'files',
+      target: 'upload-file',
+    },
+    {
+      label: 'Invite collaborators coming soon',
+      disabled: true,
+    },
   ].filter(Boolean);
 
   return (
@@ -74,19 +99,31 @@ const HomePage = ({ user }) => {
       {error && <p className="service-error">{error}</p>}
       <section className="dashboard-grid">
         {cards.map((card) => (
-          <article className="dashboard-card" key={card.label}>
+          <button
+            className="dashboard-card"
+            key={card.label}
+            type="button"
+            onClick={() => onNavigate(card.page, card.target)}
+          >
             <span>{card.label}</span>
             <strong>{card.value}</strong>
             <p>{card.detail}</p>
-          </article>
+          </button>
         ))}
       </section>
       {emptyStates.length > 0 && (
         <section className="action-grid" aria-label="Workspace next steps">
           {emptyStates.map((state) => (
-            <article className="action-card" key={state}>
-              <p>{state}</p>
-            </article>
+            <button
+              className={state.disabled ? 'action-card coming-soon-card' : 'action-card'}
+              disabled={state.disabled}
+              key={state.label}
+              type="button"
+              onClick={() => !state.disabled && onNavigate(state.page, state.target)}
+            >
+              <p>{state.label}</p>
+              {state.disabled && <span>Coming soon</span>}
+            </button>
           ))}
         </section>
       )}

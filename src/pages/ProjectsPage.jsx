@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
 import {
@@ -9,7 +9,9 @@ import {
   subscribeToProjects,
 } from '../services/projectService';
 
-const ProjectsPage = ({ user }) => {
+const ProjectsPage = ({ user, focusRequest }) => {
+  const formRef = useRef(null);
+  const nameInputRef = useRef(null);
   const [projects, setProjects] = useState([]);
   const [form, setForm] = useState({ name: '', summary: '', visibility: 'private' });
   const [error, setError] = useState('');
@@ -24,6 +26,13 @@ const ProjectsPage = ({ user }) => {
     loadProjects();
     return subscribeToProjects(loadProjects);
   }, [user?.id]);
+
+  useEffect(() => {
+    if (focusRequest?.page !== 'projects' || focusRequest?.target !== 'create-project') return;
+
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    nameInputRef.current?.focus();
+  }, [focusRequest]);
 
   const updateField = (event) => {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -73,10 +82,15 @@ const ProjectsPage = ({ user }) => {
       </PageHeader>
       {error && <p className="service-error">{error}</p>}
       {status && <p className="service-success">{status}</p>}
-      <form className="record-form" onSubmit={handleCreate}>
+      <form
+        aria-label="Create project"
+        className="record-form"
+        onSubmit={handleCreate}
+        ref={formRef}
+      >
         <label>
           Project name
-          <input name="name" value={form.name} onChange={updateField} required />
+          <input name="name" value={form.name} onChange={updateField} ref={nameInputRef} required />
         </label>
         <label>
           Summary

@@ -127,10 +127,23 @@ label {
 .dashboard-card,
 .action-card {
   padding: 1rem;
+  min-height: 0;
+  text-align: left;
+  background: rgba(10, 18, 34, 0.78);
+}
+
+.dashboard-card:hover,
+.dashboard-card:focus-visible,
+.action-card:not(:disabled):hover,
+.action-card:not(:disabled):focus-visible {
+  border-color: var(--gold);
+  outline: none;
+  background: rgba(61, 164, 255, 0.14);
 }
 
 .dashboard-card span,
-.action-card p {
+.action-card p,
+.action-card span {
   color: var(--muted);
 }
 
@@ -145,6 +158,24 @@ label {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.action-card p {
+  margin: 0;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.action-card span {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+}
+
+.coming-soon-card {
+  cursor: not-allowed;
+  border-color: rgba(230, 189, 101, 0.24);
+  background: rgba(230, 189, 101, 0.08);
 }
 
 .admin-section {

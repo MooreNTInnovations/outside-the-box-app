@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
 import { createFileMetadata, getFiles, subscribeToFiles, uploadFileToStorage } from '../services/fileService';
 
-const FilesPage = ({ user }) => {
+const FilesPage = ({ user, focusRequest }) => {
+  const formRef = useRef(null);
+  const fileInputRef = useRef(null);
   const [files, setFiles] = useState([]);
   const [form, setForm] = useState({ objectPath: '', displayName: '', roomId: '', projectId: '' });
   const [selectedFile, setSelectedFile] = useState(null);
@@ -19,6 +21,13 @@ const FilesPage = ({ user }) => {
     loadFiles();
     return subscribeToFiles(loadFiles);
   }, []);
+
+  useEffect(() => {
+    if (focusRequest?.page !== 'files' || focusRequest?.target !== 'upload-file') return;
+
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    fileInputRef.current?.focus();
+  }, [focusRequest]);
 
   const updateField = (event) => {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -62,10 +71,19 @@ const FilesPage = ({ user }) => {
       </PageHeader>
       {error && <p className="service-error">{error}</p>}
       {status && <p className="service-success">{status}</p>}
-      <form className="record-form" onSubmit={handleSubmit}>
+      <form
+        aria-label="Upload file metadata"
+        className="record-form"
+        onSubmit={handleSubmit}
+        ref={formRef}
+      >
         <label>
           Upload file
-          <input type="file" onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} />
+          <input
+            type="file"
+            onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
+            ref={fileInputRef}
+          />
         </label>
         <label>
           Storage object path

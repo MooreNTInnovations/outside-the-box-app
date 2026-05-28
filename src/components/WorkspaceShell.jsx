@@ -25,6 +25,7 @@ const navItems = [
 const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
   const [activePage, setActivePage] = useState(initialPage);
   const [currentProfile, setCurrentProfile] = useState(null);
+  const [focusRequest, setFocusRequest] = useState(null);
 
   useEffect(() => {
     getCurrentProfile(user?.id)
@@ -39,6 +40,11 @@ const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
     return navItems.filter((item) => item.key !== 'admin' || canViewAdmin);
   }, [currentProfile?.role]);
 
+  const navigateTo = (page, target = null) => {
+    setFocusRequest(target ? { page, target, requestedAt: Date.now() } : null);
+    setActivePage(page);
+  };
+
   const activeView = useMemo(() => {
     if (activePage.endsWith('-chat')) {
       const roomName = navItems.find((item) => item.key === activePage)?.label;
@@ -46,17 +52,17 @@ const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
     }
 
     const views = {
-      home: <HomePage user={user} currentProfile={currentProfile} />,
-      projects: <ProjectsPage user={user} />,
+      home: <HomePage user={user} currentProfile={currentProfile} onNavigate={navigateTo} />,
+      projects: <ProjectsPage user={user} focusRequest={focusRequest} />,
       professionals: <ProfessionalsPage />,
-      files: <FilesPage user={user} />,
+      files: <FilesPage user={user} focusRequest={focusRequest} />,
       profile: <ProfilePage user={user} />,
       admin: <AdminPage user={user} currentProfile={currentProfile} />,
       'oauth-consent': <OAuthConsentPage user={user} />,
     };
 
     return views[activePage] || views.home;
-  }, [activePage, currentProfile, user]);
+  }, [activePage, currentProfile, focusRequest, user]);
 
   return (
     <div className="workspace">
@@ -68,7 +74,7 @@ const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
               key={item.key}
               className={activePage === item.key ? 'active' : ''}
               type="button"
-              onClick={() => setActivePage(item.key)}
+              onClick={() => navigateTo(item.key)}
             >
               {item.label}
             </button>
