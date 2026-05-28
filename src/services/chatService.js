@@ -40,13 +40,13 @@ const getRoomById = async (roomId) => {
   return data;
 };
 
-const profileLabel = (profile, fallback = 'Member') =>
+const profileLabel = (profile, fallback = 'Unknown member') =>
   profile?.full_name || profile?.email || fallback;
 
 const normalizeMessage = (message) => ({
   ...message,
   body: message.body || message.content || '',
-  authorLabel: profileLabel(message.profiles, message.author_id),
+  authorLabel: profileLabel(message.profiles, 'Unknown member'),
   authorProfile: message.profiles || null,
 });
 
@@ -76,7 +76,7 @@ const getRoomMembers = async (roomId) => {
   if (error) throw error;
   return (data || []).map((member) => ({
     ...member,
-    displayName: profileLabel(member.profiles, member.user_id),
+    displayName: profileLabel(member.profiles, 'Unknown member'),
   }));
 };
 

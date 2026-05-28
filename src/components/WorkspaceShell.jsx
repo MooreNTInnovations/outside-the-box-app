@@ -108,13 +108,16 @@ const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
       </aside>
       <div className="workspace-main">
         <header className="topbar">
-          <span className="avatar-label">
-            <Avatar profile={currentProfile} label={user?.email} size="sm" />
-            <span>{user?.email}</span>
-          </span>
-          <button type="button" onClick={signOut}>
-            Sign Out
-          </button>
+          <BrandMark compact />
+          <div className="topbar-actions">
+            <span className="avatar-label">
+              <Avatar profile={currentProfile} label={user?.email} size="sm" />
+              <span>{user?.email}</span>
+            </span>
+            <button type="button" onClick={signOut}>
+              Sign Out
+            </button>
+          </div>
         </header>
         <main className="content">{activeView}</main>
       </div>

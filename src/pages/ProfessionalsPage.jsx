@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Avatar from '../components/Avatar';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
+import RoleBadge from '../components/RoleBadge';
 import { createModerationReport } from '../services/moderationService';
 import { getProfileById, getProfiles } from '../services/profileService';
 
@@ -123,7 +124,7 @@ const ProfessionalsPage = ({ user }) => {
               </div>
               <div>
                 <dt>Role</dt>
-                <dd>{displayValue(selectedProfile.role)}</dd>
+                <dd><RoleBadge role={selectedProfile.role} /></dd>
               </div>
             </dl>
             <form className="record-form compact-form" onSubmit={submitProfileReport}>
@@ -168,6 +169,7 @@ const ProfessionalsPage = ({ user }) => {
               {profile.discipline && <span>{profile.discipline}</span>}
             </div>
             {profile.title && <p>{profile.title}</p>}
+            <RoleBadge role={profile.role} />
             {profile.organization && <p>{profile.organization}</p>}
             {profile.expertise_tags?.length > 0 && (
               <p>{profile.expertise_tags.join(', ')}</p>

@@ -8,7 +8,7 @@ const projectMembershipPolicyError = () =>
     'Project membership is blocked by the current database RLS policy. Run supabase/migrations/20260527_membership_rls_fix.sql in the Supabase SQL Editor, then reload.',
   );
 
-const profileLabel = (profile, fallback) =>
+const profileLabel = (profile, fallback = 'Unknown member') =>
   profile?.full_name || profile?.email || fallback;
 
 const getProjects = async (userId) => {
@@ -82,7 +82,7 @@ const getProjectDetail = async ({ projectId, userId }) => {
 
   return {
     project,
-    ownerLabel: profileLabel(project.profiles, project.owner_id),
+    ownerLabel: profileLabel(project.profiles, 'Owner unavailable'),
     members: (members || []).map((member) => ({
       ...member,
       displayName: profileLabel(member.profiles, member.user_id),
@@ -92,11 +92,11 @@ const getProjectDetail = async ({ projectId, userId }) => {
     currentUserMembership,
     files: (files || []).map((file) => ({
       ...file,
-      ownerLabel: profileLabel(file.profiles, file.owner_id),
+      ownerLabel: profileLabel(file.profiles, 'Owner unavailable'),
     })),
     discussionMessages: discussionMessages.map((message) => ({
       ...message,
-      authorLabel: profileLabel(message.profiles, message.author_id),
+      authorLabel: profileLabel(message.profiles, 'Unknown member'),
       authorProfile: message.profiles || null,
     })),
   };
@@ -121,7 +121,7 @@ const postProjectMessage = async ({ projectId, authorId, body }) => {
   if (error) throw error;
   return {
     ...data,
-    authorLabel: profileLabel(data.profiles, data.author_id),
+    authorLabel: profileLabel(data.profiles, 'Unknown member'),
     authorProfile: data.profiles || null,
   };
 };

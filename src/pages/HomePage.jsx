@@ -12,7 +12,7 @@ const defaultDashboard = {
   isModeratorOrAdmin: false,
 };
 
-const HomePage = ({ user, onNavigate }) => {
+const HomePage = ({ user, currentProfile, onNavigate }) => {
   const [dashboard, setDashboard] = useState(defaultDashboard);
   const [error, setError] = useState('');
 
@@ -62,7 +62,7 @@ const HomePage = ({ user, onNavigate }) => {
       label: 'Pending reports',
       value: dashboard.pendingReportsCount || 0,
       detail: 'Open moderation reports',
-      page: 'admin',
+      page: currentProfile?.role === 'admin' ? 'admin' : 'moderator',
     });
   }
 

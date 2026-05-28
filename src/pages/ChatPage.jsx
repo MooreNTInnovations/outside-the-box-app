@@ -345,7 +345,7 @@ const ChatPage = ({ roomKey, roomName, user, currentProfile }) => {
             >
               {profiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
-                  {profile.full_name || profile.email || profile.id}
+                  {profile.full_name || profile.email || 'Profile record'}
                 </option>
               ))}
             </select>
@@ -577,7 +577,7 @@ const ChatPage = ({ roomKey, roomName, user, currentProfile }) => {
                   >
                     {availableInviteProfiles.map((profile) => (
                       <option key={profile.id} value={profile.id}>
-                        {profile.full_name || profile.email || profile.id}
+                        {profile.full_name || profile.email || 'Profile record'}
                       </option>
                     ))}
                   </select>

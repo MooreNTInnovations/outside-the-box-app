@@ -123,7 +123,7 @@ const getFiles = async () => {
   if (error) throw error;
   return (data || []).map((file) => ({
     ...file,
-    ownerLabel: file.profiles?.full_name || file.profiles?.email || file.owner_id,
+    ownerLabel: file.profiles?.full_name || file.profiles?.email || 'Uploader unavailable',
   }));
 };
 

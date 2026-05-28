@@ -53,14 +53,14 @@ const getAdminSnapshot = async (userId) => {
     adminActions,
   ] = await Promise.all([
     readTable('profiles', 'id, email, full_name, discipline, organization, title, role, suspended_at, avatar_path, updated_at', 'updated_at'),
-    readTable('reports', 'id, reporter_id, target_type, target_id, room_id, project_id, reason, status, created_at, updated_at'),
-    readTable('projects', 'id, owner_id, name, summary, visibility, created_at, updated_at', 'updated_at'),
-    readTable('rooms', 'id, room_key, name, description, is_public, is_system, visibility, owner_id, archived_at, created_at, updated_at'),
-    readTable('messages', 'id, room_id, author_id, body, created_at'),
-    readTable('room_members', 'room_id, user_id, role, status, invited_by, created_at'),
-    readTable('project_members', 'project_id, user_id, role, created_at'),
-    readTable('files', 'id, bucket_id, object_path, storage_path, display_name, mime_type, size_bytes, owner_id, room_id, project_id, created_at'),
-    readTable('admin_actions', 'id, actor_id, target_user_id, action_type, target_type, target_id, notes, details, created_at'),
+    readTable('reports', 'id, reporter_id, target_type, target_id, room_id, project_id, reason, status, created_at, updated_at, reporter:reporter_id(id, full_name, email, avatar_path), rooms:room_id(id, name), projects:project_id(id, name)'),
+    readTable('projects', 'id, owner_id, name, summary, visibility, created_at, updated_at, profiles:owner_id(id, full_name, email, avatar_path)', 'updated_at'),
+    readTable('rooms', 'id, room_key, name, description, is_public, is_system, visibility, owner_id, archived_at, created_at, updated_at, profiles:owner_id(id, full_name, email, avatar_path)'),
+    readTable('messages', 'id, room_id, author_id, body, created_at, profiles:author_id(id, full_name, email, avatar_path), rooms:room_id(id, name)'),
+    readTable('room_members', 'room_id, user_id, role, status, invited_by, created_at, profiles:user_id(id, full_name, email, avatar_path), rooms:room_id(id, name)'),
+    readTable('project_members', 'project_id, user_id, role, created_at, profiles:user_id(id, full_name, email, avatar_path), projects:project_id(id, name)'),
+    readTable('files', 'id, bucket_id, object_path, storage_path, display_name, mime_type, size_bytes, owner_id, room_id, project_id, created_at, profiles:owner_id(id, full_name, email, avatar_path), rooms:room_id(id, name), projects:project_id(id, name)'),
+    readTable('admin_actions', 'id, actor_id, target_user_id, action_type, target_type, target_id, notes, details, created_at, actor:actor_id(id, full_name, email, avatar_path), target_user:target_user_id(id, full_name, email, avatar_path)'),
   ]);
 
   return {

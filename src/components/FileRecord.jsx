@@ -13,7 +13,8 @@ const FileRecord = ({ file, ownerLabel, onReport }) => {
   const category = classifyFile(file);
   const storagePath = getFileStoragePath(file);
   const displayName = file.display_name || storagePath || 'File record';
-  const uploader = ownerLabel || file.ownerLabel || file.profiles?.full_name || file.profiles?.email || file.owner_id;
+  const storedFileName = storagePath.split('/').pop() || displayName;
+  const uploader = ownerLabel || file.ownerLabel || file.profiles?.full_name || file.profiles?.email || 'Uploader unavailable';
 
   useEffect(() => {
     let isMounted = true;
@@ -64,7 +65,7 @@ const FileRecord = ({ file, ownerLabel, onReport }) => {
         <span>{category}</span>
       </div>
       {category === 'Video' && <p>Video file</p>}
-      <p>{storagePath}</p>
+      <p>Stored file: {storedFileName}</p>
       <p>{formatFileSize(file.size_bytes)}</p>
       {file.mime_type && <p>{file.mime_type}</p>}
       <p>Uploaded {new Date(file.created_at).toLocaleString()}</p>

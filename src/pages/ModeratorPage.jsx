@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import Avatar from '../components/Avatar';
+import BrandMark from '../components/BrandMark';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
 import {
@@ -9,6 +11,8 @@ import {
 
 const reportTargets = ['message', 'room', 'project', 'profile', 'file', 'user'];
 const moderatorStatuses = ['open', 'reviewed'];
+const profileLabel = (profile) => profile?.full_name || profile?.email || 'Unavailable profile';
+const reportContext = (report) => report.rooms?.name || report.projects?.name || 'Context not attached';
 
 const ModeratorPage = ({ user, currentProfile }) => {
   const [reports, setReports] = useState([]);
@@ -93,6 +97,9 @@ const ModeratorPage = ({ user, currentProfile }) => {
   if (!canUseModeratorPage) {
     return (
       <>
+        <div className="page-brand-strip">
+          <BrandMark compact />
+        </div>
         <PageHeader title="Moderator" eyebrow="Governance">
           Moderator access requires moderator or admin role.
         </PageHeader>
@@ -103,6 +110,9 @@ const ModeratorPage = ({ user, currentProfile }) => {
 
   return (
     <>
+      <div className="page-brand-strip">
+        <BrandMark compact />
+      </div>
       <PageHeader title="Moderator" eyebrow="Governance">
         Review visible reports and send concerns to admins without full administrative privileges.
       </PageHeader>
@@ -151,11 +161,12 @@ const ModeratorPage = ({ user, currentProfile }) => {
         {reports.map((report) => (
           <article className="admin-row" key={report.id}>
             <div>
-              <strong>{report.target_type}</strong>
+              <span className="avatar-label">
+                <Avatar profile={report.reporter} label={profileLabel(report.reporter)} size="sm" />
+                <strong>{report.target_type}</strong>
+              </span>
               <span>
-                {report.reason}
-                {report.room_id ? ` | room ${report.room_id}` : ''}
-                {report.project_id ? ` | project ${report.project_id}` : ''}
+                {profileLabel(report.reporter)} | {reportContext(report)} | {report.reason}
               </span>
             </div>
             <select

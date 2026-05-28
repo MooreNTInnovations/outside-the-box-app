@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import Avatar from '../components/Avatar';
+import BrandMark from '../components/BrandMark';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
+import RoleBadge from '../components/RoleBadge';
 import {
   adminCreateRoom,
   adminDeleteRecord,
@@ -29,6 +32,25 @@ const emptySnapshot = {
 const roleOptions = ['member', 'verified_professional', 'moderator', 'admin'];
 const reportStatuses = ['open', 'reviewed', 'resolved', 'dismissed'];
 const projectVisibilities = ['private', 'discoverable', 'public'];
+const profileLabel = (profile) => profile?.full_name || profile?.email || 'Unavailable profile';
+const recordLabel = (record, field = 'name') => record?.[field] || 'Unavailable record';
+
+const targetLabel = (report, snapshot) => {
+  if (report.target_type === 'room') return recordLabel(snapshot.rooms.find((room) => room.id === report.target_id));
+  if (report.target_type === 'project') return recordLabel(snapshot.projects.find((project) => project.id === report.target_id));
+  if (report.target_type === 'file') {
+    const file = snapshot.files.find((item) => item.id === report.target_id);
+    return file?.display_name || file?.storage_path?.split('/').pop() || 'Unavailable file';
+  }
+  if (report.target_type === 'message') {
+    const message = snapshot.messages.find((item) => item.id === report.target_id);
+    return message?.body ? `${message.body.slice(0, 48)}${message.body.length > 48 ? '...' : ''}` : 'Unavailable message';
+  }
+  if (['profile', 'user'].includes(report.target_type)) {
+    return profileLabel(snapshot.profiles.find((profile) => profile.id === report.target_id));
+  }
+  return 'Unavailable record';
+};
 
 const AdminPage = ({ user, currentProfile }) => {
   const [snapshot, setSnapshot] = useState(emptySnapshot);
@@ -139,6 +161,9 @@ const AdminPage = ({ user, currentProfile }) => {
   if (loading) {
     return (
       <>
+        <div className="page-brand-strip">
+          <BrandMark compact />
+        </div>
         <PageHeader title="Admin" eyebrow="Governance">
           Loading authorized admin records.
         </PageHeader>
@@ -149,6 +174,9 @@ const AdminPage = ({ user, currentProfile }) => {
   if (!isAdmin) {
     return (
       <>
+        <div className="page-brand-strip">
+          <BrandMark compact />
+        </div>
         <PageHeader title="Admin" eyebrow="Governance">
           Admin page access requires admin role.
         </PageHeader>
@@ -159,6 +187,9 @@ const AdminPage = ({ user, currentProfile }) => {
 
   return (
     <>
+      <div className="page-brand-strip">
+        <BrandMark compact />
+      </div>
       <PageHeader title="Admin" eyebrow="Governance">
         Full administrative controls connected to Supabase RLS and the profile role field.
       </PageHeader>
@@ -183,11 +214,11 @@ const AdminPage = ({ user, currentProfile }) => {
         {snapshot.reports.map((report) => (
           <article className="admin-row" key={report.id}>
             <div>
-              <strong>{report.target_type}</strong>
+              <strong>{targetLabel(report, snapshot)}</strong>
               <span>
-                {report.reason}
-                {report.room_id ? ` | room ${report.room_id}` : ''}
-                {report.project_id ? ` | project ${report.project_id}` : ''}
+                {report.target_type} | {report.reason}
+                {report.rooms?.name ? ` | room ${report.rooms.name}` : ''}
+                {report.projects?.name ? ` | project ${report.projects.name}` : ''}
               </span>
             </div>
             <select
@@ -235,7 +266,10 @@ const AdminPage = ({ user, currentProfile }) => {
         {snapshot.profiles.map((profile) => (
           <article className="admin-row" key={profile.id}>
             <div>
-              <strong>{profile.full_name || profile.email || profile.id}</strong>
+              <span className="avatar-label">
+                <Avatar profile={profile} label={profileLabel(profile)} size="sm" />
+                <strong>{profileLabel(profile)}</strong>
+              </span>
               <span>
                 {profile.suspended_at ? 'Suspended' : 'Active'} | {profile.title || profile.discipline || 'Profile record'}
               </span>
@@ -449,7 +483,9 @@ const AdminPage = ({ user, currentProfile }) => {
             <article className="admin-row" key={message.id}>
               <div>
                 <strong>Message</strong>
-                <span>{message.body}</span>
+                <span>
+                  {profileLabel(message.profiles)} | {message.rooms?.name || 'Project discussion'} | {message.body}
+                </span>
               </div>
               <button
                 className="danger-button"
@@ -469,8 +505,11 @@ const AdminPage = ({ user, currentProfile }) => {
           {snapshot.roomMembers.map((member) => (
             <article className="admin-row" key={`${member.room_id}-${member.user_id}`}>
               <div>
-                <strong>Room member</strong>
-                <span>{member.role}</span>
+                <span className="avatar-label">
+                  <Avatar profile={member.profiles} label={profileLabel(member.profiles)} size="sm" />
+                  <strong>{profileLabel(member.profiles)}</strong>
+                </span>
+                <span>{member.rooms?.name || 'Unavailable room'} | <RoleBadge role={member.role} /></span>
               </div>
               <button
                 className="danger-button"
@@ -495,8 +534,11 @@ const AdminPage = ({ user, currentProfile }) => {
           {snapshot.projectMembers.map((member) => (
             <article className="admin-row" key={`${member.project_id}-${member.user_id}`}>
               <div>
-                <strong>Project member</strong>
-                <span>{member.role}</span>
+                <span className="avatar-label">
+                  <Avatar profile={member.profiles} label={profileLabel(member.profiles)} size="sm" />
+                  <strong>{profileLabel(member.profiles)}</strong>
+                </span>
+                <span>{member.projects?.name || 'Unavailable project'} | <RoleBadge role={member.role} /></span>
               </div>
               <button
                 className="danger-button"
@@ -521,8 +563,8 @@ const AdminPage = ({ user, currentProfile }) => {
           {snapshot.files.map((file) => (
             <article className="admin-row" key={file.id}>
               <div>
-                <strong>{file.display_name || file.storage_path || file.object_path}</strong>
-                <span>{file.bucket_id}</span>
+                <strong>{file.display_name || file.storage_path?.split('/').pop() || 'File record'}</strong>
+                <span>{profileLabel(file.profiles)} | {file.projects?.name || file.rooms?.name || 'Personal upload'}</span>
               </div>
               <button
                 className="danger-button"
@@ -556,8 +598,8 @@ const AdminPage = ({ user, currentProfile }) => {
             <div>
               <strong>{action.action_type}</strong>
               <span>
-                {action.target_type} {action.target_id}
-                {action.target_user_id ? ` | user ${action.target_user_id}` : ''}
+                {profileLabel(action.actor)} | {action.target_type}
+                {action.target_user ? ` | ${profileLabel(action.target_user)}` : ''}
               </span>
             </div>
             <time dateTime={action.created_at}>{new Date(action.created_at).toLocaleString()}</time>

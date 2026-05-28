@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Avatar from '../components/Avatar';
+import BrandMark from '../components/BrandMark';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
 import { getCurrentProfile, updateCurrentProfile, uploadProfileAvatar } from '../services/profileService';
@@ -76,6 +77,9 @@ const ProfilePage = ({ user, onProfileUpdated }) => {
 
   return (
     <>
+      <div className="page-brand-strip">
+        <BrandMark compact />
+      </div>
       <PageHeader title="Profile" eyebrow="Authenticated Identity">
         Signed in as {user?.email}
       </PageHeader>

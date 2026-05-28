@@ -5,7 +5,7 @@ const getReports = async () => {
 
   const { data, error } = await supabase
     .from('reports')
-    .select('id, reporter_id, target_type, target_id, room_id, project_id, reason, status, created_at, updated_at')
+    .select('id, reporter_id, target_type, target_id, room_id, project_id, reason, status, created_at, updated_at, reporter:reporter_id(id, full_name, email, avatar_path), rooms:room_id(id, name), projects:project_id(id, name)')
     .order('created_at', { ascending: false });
 
   if (error) throw error;

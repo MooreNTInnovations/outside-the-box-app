@@ -3,6 +3,7 @@ import Avatar from '../components/Avatar';
 import EmptyState from '../components/EmptyState';
 import FileRecord from '../components/FileRecord';
 import PageHeader from '../components/PageHeader';
+import RoleBadge from '../components/RoleBadge';
 import {
   createProject,
   getProjectDetail,
@@ -481,7 +482,7 @@ const ProjectsPage = ({ user, focusRequest }) => {
                     <Avatar profile={member.profile} label={member.displayName} size="sm" />
                     <strong>{member.displayName}</strong>
                   </span>
-                  <span>{member.role}</span>
+                  <RoleBadge role={member.role} />
                 </article>
               ))}
             </article>
