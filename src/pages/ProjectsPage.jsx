@@ -12,7 +12,7 @@ import {
   subscribeToProjectDetail,
   subscribeToProjects,
 } from '../services/projectService';
-import { createFileMetadata, uploadFileToStorage } from '../services/fileService';
+import { uploadWorkspaceFile } from '../services/fileService';
 import { createModerationReport } from '../services/moderationService';
 
 const emptyDetail = {
@@ -34,7 +34,7 @@ const ProjectsPage = ({ user, focusRequest }) => {
   const [projectDetail, setProjectDetail] = useState(emptyDetail);
   const [form, setForm] = useState({ name: '', summary: '', visibility: 'private' });
   const [discussionDraft, setDiscussionDraft] = useState('');
-  const [fileForm, setFileForm] = useState({ objectPath: '', displayName: '' });
+  const [fileForm, setFileForm] = useState({ displayName: '' });
   const [selectedFile, setSelectedFile] = useState(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
@@ -175,22 +175,15 @@ const ProjectsPage = ({ user, focusRequest }) => {
     setStatus('');
     setUploadingFile(true);
     try {
-      let objectPath = fileForm.objectPath;
-
-      if (selectedFile) {
-        objectPath = objectPath || `${user.id}/projects/${selectedProjectId}/${Date.now()}-${selectedFile.name}`;
-        await uploadFileToStorage({ file: selectedFile, objectPath });
-      }
-
-      await createFileMetadata({
+      await uploadWorkspaceFile({
+        file: selectedFile,
         ownerId: user?.id,
-        objectPath,
-        displayName: fileForm.displayName || selectedFile?.name || objectPath,
+        displayName: fileForm.displayName || selectedFile?.name,
         projectId: selectedProjectId,
       });
       setSelectedFile(null);
-      setFileForm({ objectPath: '', displayName: '' });
-      setStatus('Project file saved.');
+      setFileForm({ displayName: '' });
+      setStatus('Project file uploaded.');
       loadProjectDetail(selectedProjectId);
     } catch (err) {
       setError(err.message);
@@ -221,7 +214,7 @@ const ProjectsPage = ({ user, focusRequest }) => {
       });
       setReportTarget(null);
       setReportReason('');
-      setStatus('Report submitted for governance review.');
+      setStatus('Concern submitted for governance review.');
     } catch (err) {
       setError(err.message);
     }
@@ -233,7 +226,7 @@ const ProjectsPage = ({ user, focusRequest }) => {
     return (
       <form className="record-form compact-form" onSubmit={submitReport}>
         <label>
-          Report reason
+          Report a Concern
           <textarea
             value={reportReason}
             onChange={(event) => setReportReason(event.target.value)}
@@ -242,7 +235,7 @@ const ProjectsPage = ({ user, focusRequest }) => {
           />
         </label>
         <div className="record-actions">
-          <button type="submit">Submit Report</button>
+          <button type="submit">Submit Concern</button>
           <button type="button" onClick={() => setReportTarget(null)}>
             Cancel
           </button>
@@ -392,7 +385,7 @@ const ProjectsPage = ({ user, focusRequest }) => {
               </button>
             )}
             <button type="button" onClick={() => setReportTarget({ type: 'project', id: project.id })}>
-              Report Project
+              Report a Concern
             </button>
           </div>
           {renderReportForm()}
@@ -441,7 +434,7 @@ const ProjectsPage = ({ user, focusRequest }) => {
                     type="button"
                     onClick={() => setReportTarget({ type: 'message', id: message.id })}
                   >
-                    Report
+                    Report a Concern
                   </button>
                 </article>
               ))}
@@ -458,31 +451,29 @@ const ProjectsPage = ({ user, focusRequest }) => {
                   />
                 </label>
                 <label>
-                  Storage object path
-                  <input name="objectPath" value={fileForm.objectPath} onChange={updateFileField} />
-                </label>
-                <label>
                   Display name
                   <input name="displayName" value={fileForm.displayName} onChange={updateFileField} />
                 </label>
-                <button type="submit" disabled={uploadingFile || (!selectedFile && !fileForm.objectPath)}>
+                <button type="submit" disabled={uploadingFile || !selectedFile}>
                   {uploadingFile ? 'Uploading...' : 'Upload Project File'}
                 </button>
               </form>
               {detail.files.map((file) => (
                 <article className="record-card" key={file.id}>
                   <div>
-                    <h3>{file.display_name || file.object_path}</h3>
+                    <h3>{file.display_name || file.storage_path || file.object_path}</h3>
                     <span>{new Date(file.created_at).toLocaleDateString()}</span>
                   </div>
-                  <p>{file.object_path}</p>
+                  <p>{file.storage_path || file.object_path}</p>
+                  {file.mime_type && <p>{file.mime_type}</p>}
+                  {file.size_bytes != null && <p>{file.size_bytes} bytes</p>}
                   <p>Owner: {file.ownerLabel}</p>
                   <button
                     className="text-button"
                     type="button"
                     onClick={() => setReportTarget({ type: 'file', id: file.id })}
                   >
-                    Report
+                    Report a Concern
                   </button>
                 </article>
               ))}

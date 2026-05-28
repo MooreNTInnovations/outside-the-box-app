@@ -54,7 +54,7 @@ const ProfessionalsPage = ({ user }) => {
         reason: reportReason,
       });
       setReportReason('');
-      setStatus('Report submitted for governance review.');
+      setStatus('Concern submitted for governance review.');
     } catch (err) {
       setError(err.message);
     }
@@ -128,7 +128,7 @@ const ProfessionalsPage = ({ user }) => {
             </dl>
             <form className="record-form compact-form" onSubmit={submitProfileReport}>
               <label>
-                Report profile
+                Report a Concern
                 <textarea
                   value={reportReason}
                   onChange={(event) => setReportReason(event.target.value)}
@@ -136,7 +136,7 @@ const ProfessionalsPage = ({ user }) => {
                   required
                 />
               </label>
-              <button type="submit">Submit Report</button>
+              <button type="submit">Submit Concern</button>
             </form>
           </section>
         )}

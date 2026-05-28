@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
-import { createFileMetadata, getFiles, subscribeToFiles, uploadFileToStorage } from '../services/fileService';
+import { getFiles, subscribeToFiles, uploadWorkspaceFile } from '../services/fileService';
 import { createModerationReport } from '../services/moderationService';
 
 const FilesPage = ({ user, focusRequest }) => {
   const formRef = useRef(null);
   const fileInputRef = useRef(null);
   const [files, setFiles] = useState([]);
-  const [form, setForm] = useState({ objectPath: '', displayName: '', roomId: '', projectId: '' });
+  const [form, setForm] = useState({ displayName: '', roomId: '', projectId: '' });
   const [selectedFile, setSelectedFile] = useState(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
@@ -42,23 +42,17 @@ const FilesPage = ({ user, focusRequest }) => {
     setStatus('');
     setSaving(true);
     try {
-      let objectPath = form.objectPath;
-
-      if (selectedFile) {
-        objectPath = objectPath || `${user.id}/${Date.now()}-${selectedFile.name}`;
-        await uploadFileToStorage({ file: selectedFile, objectPath });
-      }
-
-      await createFileMetadata({
+      await uploadWorkspaceFile({
+        file: selectedFile,
         ownerId: user?.id,
-        objectPath,
-        displayName: form.displayName || selectedFile?.name || objectPath,
-        roomId: form.roomId,
-        projectId: form.projectId,
+        displayName: form.displayName || selectedFile?.name,
+        roomId: form.roomId || null,
+        projectId: form.projectId || null,
       });
-      setForm({ objectPath: '', displayName: '', roomId: '', projectId: '' });
+      setForm({ displayName: '', roomId: '', projectId: '' });
       setSelectedFile(null);
-      setStatus('File metadata saved.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setStatus('File uploaded.');
       loadFiles();
     } catch (err) {
       setError(err.message);
@@ -84,7 +78,7 @@ const FilesPage = ({ user, focusRequest }) => {
       });
       setReportTarget(null);
       setReportReason('');
-      setStatus('Report submitted for governance review.');
+      setStatus('Concern submitted for governance review.');
     } catch (err) {
       setError(err.message);
     }
@@ -100,7 +94,7 @@ const FilesPage = ({ user, focusRequest }) => {
       {reportTarget && (
         <form className="record-form compact-form" onSubmit={submitReport}>
           <label>
-            Report reason
+            Report a Concern
             <textarea
               value={reportReason}
               onChange={(event) => setReportReason(event.target.value)}
@@ -109,7 +103,7 @@ const FilesPage = ({ user, focusRequest }) => {
             />
           </label>
           <div className="record-actions">
-            <button type="submit">Submit Report</button>
+            <button type="submit">Submit Concern</button>
             <button type="button" onClick={() => setReportTarget(null)}>
               Cancel
             </button>
@@ -131,10 +125,6 @@ const FilesPage = ({ user, focusRequest }) => {
           />
         </label>
         <label>
-          Storage object path
-          <input name="objectPath" value={form.objectPath} onChange={updateField} />
-        </label>
-        <label>
           Display name
           <input name="displayName" value={form.displayName} onChange={updateField} />
         </label>
@@ -146,8 +136,8 @@ const FilesPage = ({ user, focusRequest }) => {
           Project ID
           <input name="projectId" value={form.projectId} onChange={updateField} />
         </label>
-        <button type="submit" disabled={saving || (!selectedFile && !form.objectPath)}>
-          {saving ? 'Saving...' : 'Save File Metadata'}
+        <button type="submit" disabled={saving || !selectedFile}>
+          {saving ? 'Uploading...' : 'Upload File'}
         </button>
       </form>
       {files.length === 0 && <EmptyState message="No shared files available yet." />}
@@ -155,12 +145,14 @@ const FilesPage = ({ user, focusRequest }) => {
         {files.map((file) => (
           <article className="record-card" key={file.id}>
             <div>
-              <h2>{file.display_name || file.object_path}</h2>
+              <h2>{file.display_name || file.storage_path || file.object_path}</h2>
               <span>{file.bucket_id}</span>
             </div>
-            <p>{file.object_path}</p>
+            <p>{file.storage_path || file.object_path}</p>
+            {file.mime_type && <p>{file.mime_type}</p>}
+            {file.size_bytes != null && <p>{file.size_bytes} bytes</p>}
             <button className="text-button" type="button" onClick={() => setReportTarget(file)}>
-              Report
+              Report a Concern
             </button>
           </article>
         ))}

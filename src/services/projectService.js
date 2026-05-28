@@ -66,7 +66,7 @@ const getProjectDetail = async ({ projectId, userId }) => {
       .eq('project_id', projectId),
     supabase
       .from('files')
-      .select('id, bucket_id, object_path, display_name, owner_id, room_id, project_id, created_at, profiles:owner_id(id, full_name, email, avatar_path)')
+      .select('id, bucket_id, object_path, storage_path, display_name, mime_type, size_bytes, owner_id, room_id, project_id, created_at, profiles:owner_id(id, full_name, email, avatar_path)')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false }),
   ]);

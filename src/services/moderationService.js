@@ -5,7 +5,7 @@ const getReports = async () => {
 
   const { data, error } = await supabase
     .from('reports')
-    .select('id, reporter_id, target_type, target_id, reason, status, created_at')
+    .select('id, reporter_id, target_type, target_id, room_id, project_id, reason, status, created_at, updated_at')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -36,4 +36,16 @@ const createModerationReport = async ({ reporterId, targetType, targetId, reason
   return data;
 };
 
-export { createModerationReport, getReports };
+const updateModerationReportStatus = async ({ reportId, status }) => {
+  if (!supabase || !reportId) return null;
+
+  const { data, error } = await supabase.rpc('admin_update_report_status', {
+    target_report_id: reportId,
+    next_status: status,
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+export { createModerationReport, getReports, updateModerationReportStatus };

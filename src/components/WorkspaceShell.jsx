@@ -3,6 +3,7 @@ import AdminPage from '../pages/AdminPage';
 import ChatPage from '../pages/ChatPage';
 import FilesPage from '../pages/FilesPage';
 import HomePage from '../pages/HomePage';
+import ModeratorPage from '../pages/ModeratorPage';
 import OAuthConsentPage from '../pages/OAuthConsentPage';
 import ProfessionalsPage from '../pages/ProfessionalsPage';
 import ProfilePage from '../pages/ProfilePage';
@@ -21,8 +22,9 @@ const navItems = [
   { key: 'professionals', label: 'Professionals' },
   { key: 'files', label: 'Shared Files' },
   { key: 'profile', label: 'Profile' },
+  { key: 'moderator', label: 'Moderator' },
   { key: 'admin-moderator-channel', label: 'Admin Moderator Channel' },
-  { key: 'admin', label: 'Admin Moderation' },
+  { key: 'admin', label: 'Admin' },
 ];
 
 const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
@@ -37,12 +39,16 @@ const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
   }, [user?.id]);
 
   const visibleNavItems = useMemo(() => {
-    const canViewAdmin =
+    const canViewModerator =
       currentProfile?.role === 'admin' || currentProfile?.role === 'moderator';
+    const canViewAdmin = currentProfile?.role === 'admin';
 
     return navItems.filter(
-      (item) =>
-        !['admin', 'admin-moderator-channel'].includes(item.key) || canViewAdmin,
+      (item) => {
+        if (item.key === 'admin') return canViewAdmin;
+        if (['moderator', 'admin-moderator-channel'].includes(item.key)) return canViewModerator;
+        return true;
+      },
     );
   }, [currentProfile?.role]);
 
@@ -75,6 +81,7 @@ const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
       professionals: <ProfessionalsPage user={user} />,
       files: <FilesPage user={user} focusRequest={focusRequest} />,
       profile: <ProfilePage user={user} onProfileUpdated={setCurrentProfile} />,
+      moderator: <ModeratorPage user={user} currentProfile={currentProfile} />,
       admin: <AdminPage user={user} currentProfile={currentProfile} />,
       'oauth-consent': <OAuthConsentPage user={user} />,
     };

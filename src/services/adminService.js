@@ -26,13 +26,10 @@ const getAdminSnapshot = async (userId) => {
 
   if (profileError) throw profileError;
 
-  const canViewAdmin =
-    currentProfile?.role === 'admin' || currentProfile?.role === 'moderator';
-
-  if (!canViewAdmin) {
+  if (currentProfile?.role !== 'admin') {
     return {
       currentProfile,
-    profiles: [],
+      profiles: [],
       reports: [],
       projects: [],
       rooms: [],
@@ -62,7 +59,7 @@ const getAdminSnapshot = async (userId) => {
     readTable('messages', 'id, room_id, author_id, body, created_at'),
     readTable('room_members', 'room_id, user_id, role, status, invited_by, created_at'),
     readTable('project_members', 'project_id, user_id, role, created_at'),
-    readTable('files', 'id, bucket_id, object_path, display_name, owner_id, room_id, project_id, created_at'),
+    readTable('files', 'id, bucket_id, object_path, storage_path, display_name, mime_type, size_bytes, owner_id, room_id, project_id, created_at'),
     readTable('admin_actions', 'id, actor_id, target_user_id, action_type, target_type, target_id, notes, details, created_at'),
   ]);
 

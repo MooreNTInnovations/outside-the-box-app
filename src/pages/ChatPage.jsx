@@ -305,7 +305,7 @@ const ChatPage = ({ roomKey, roomName, user, currentProfile }) => {
       });
       setReportReason('');
       setReportTarget(null);
-      setStatus('Report submitted for governance review.');
+      setStatus('Concern submitted for governance review.');
     } catch (err) {
       setError(err.message);
     }
@@ -392,7 +392,7 @@ const ChatPage = ({ roomKey, roomName, user, currentProfile }) => {
     return (
       <form className="record-form compact-form" onSubmit={submitReport}>
         <label>
-          Report reason
+          Report a Concern
           <textarea
             value={reportReason}
             onChange={(event) => setReportReason(event.target.value)}
@@ -401,7 +401,7 @@ const ChatPage = ({ roomKey, roomName, user, currentProfile }) => {
           />
         </label>
         <div className="record-actions">
-          <button type="submit">Submit Report</button>
+          <button type="submit">Submit Concern</button>
           <button type="button" onClick={() => setReportTarget(null)}>
             Cancel
           </button>
@@ -474,7 +474,7 @@ const ChatPage = ({ roomKey, roomName, user, currentProfile }) => {
                 type="button"
                 onClick={() => setReportTarget({ type: 'room', id: room.id })}
               >
-                Report Room
+                Report a Concern
               </button>
             )}
           </div>
@@ -514,7 +514,7 @@ const ChatPage = ({ roomKey, roomName, user, currentProfile }) => {
                   type="button"
                   onClick={() => setReportTarget({ type: 'message', id: message.id })}
                 >
-                  Report
+                  Report a Concern
                 </button>
               </article>
             ))}

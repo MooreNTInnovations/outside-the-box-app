@@ -47,7 +47,6 @@ const AdminPage = ({ user, currentProfile }) => {
   });
 
   const effectiveRole = snapshot.currentProfile?.role || currentProfile?.role;
-  const canViewAdmin = effectiveRole === 'admin' || effectiveRole === 'moderator';
   const isAdmin = effectiveRole === 'admin';
 
   const loadSnapshot = async () => {
@@ -140,18 +139,18 @@ const AdminPage = ({ user, currentProfile }) => {
   if (loading) {
     return (
       <>
-        <PageHeader title="Admin Moderation" eyebrow="Governance">
+        <PageHeader title="Admin" eyebrow="Governance">
           Loading authorized admin records.
         </PageHeader>
       </>
     );
   }
 
-  if (!canViewAdmin) {
+  if (!isAdmin) {
     return (
       <>
-        <PageHeader title="Admin Moderation" eyebrow="Governance">
-          Admin page access requires moderator or admin role.
+        <PageHeader title="Admin" eyebrow="Governance">
+          Admin page access requires admin role.
         </PageHeader>
         <EmptyState message="No admin records available for this account." />
       </>
@@ -160,8 +159,8 @@ const AdminPage = ({ user, currentProfile }) => {
 
   return (
     <>
-      <PageHeader title="Admin Moderation" eyebrow="Governance">
-        Live administrative controls connected to Supabase RLS and the profile role field.
+      <PageHeader title="Admin" eyebrow="Governance">
+        Full administrative controls connected to Supabase RLS and the profile role field.
       </PageHeader>
       {error && <p className="service-error">{error}</p>}
       {status && <p className="service-success">{status}</p>}
@@ -175,12 +174,6 @@ const AdminPage = ({ user, currentProfile }) => {
           </article>
         ))}
       </section>
-
-      {!isAdmin && (
-        <section className="auth-context-panel">
-          <p>Moderator access is limited. Full user, role, content, membership, and file management requires admin role.</p>
-        </section>
-      )}
 
       <section className="admin-section">
         <h2>Reports</h2>
@@ -199,7 +192,6 @@ const AdminPage = ({ user, currentProfile }) => {
             </div>
             <select
               value={reportEdits[report.id] || report.status}
-              disabled={!isAdmin && ['resolved', 'dismissed'].includes(reportEdits[report.id] || report.status)}
               onChange={(event) =>
                 setReportEdits((current) => ({ ...current, [report.id]: event.target.value }))
               }
@@ -221,21 +213,19 @@ const AdminPage = ({ user, currentProfile }) => {
             >
               Update
             </button>
-            {isAdmin && (
-              <button
-                className="danger-button"
-                type="button"
-                onClick={() =>
-                  confirmDestructive('Delete this report?') &&
-                  runAction(
-                    () => adminDeleteRecord({ targetType: 'report', targetId: report.id, notes: report.reason }),
-                    'Report deleted and admin action recorded.',
-                  )
-                }
-              >
-                Delete
-              </button>
-            )}
+            <button
+              className="danger-button"
+              type="button"
+              onClick={() =>
+                confirmDestructive('Delete this report?') &&
+                runAction(
+                  () => adminDeleteRecord({ targetType: 'report', targetId: report.id, notes: report.reason }),
+                  'Report deleted and admin action recorded.',
+                )
+              }
+            >
+              Delete
+            </button>
           </article>
         ))}
       </section>
@@ -298,8 +288,7 @@ const AdminPage = ({ user, currentProfile }) => {
         ))}
       </section>
 
-      {isAdmin && (
-        <section className="admin-section">
+      <section className="admin-section">
           <h2>Rooms</h2>
           <form className="record-form" onSubmit={createRoom}>
             <label>
@@ -396,11 +385,9 @@ const AdminPage = ({ user, currentProfile }) => {
               </button>
             </article>
           ))}
-        </section>
-      )}
+      </section>
 
-      {isAdmin && (
-        <section className="admin-section">
+      <section className="admin-section">
           <h2>Projects</h2>
           {snapshot.projects.map((project) => (
             <article className="admin-row" key={project.id}>
@@ -454,11 +441,9 @@ const AdminPage = ({ user, currentProfile }) => {
               </button>
             </article>
           ))}
-        </section>
-      )}
+      </section>
 
-      {isAdmin && (
-        <section className="admin-section">
+      <section className="admin-section">
           <h2>Messages, Memberships, And Files</h2>
           {snapshot.messages.map((message) => (
             <article className="admin-row" key={message.id}>
@@ -536,7 +521,7 @@ const AdminPage = ({ user, currentProfile }) => {
           {snapshot.files.map((file) => (
             <article className="admin-row" key={file.id}>
               <div>
-                <strong>{file.display_name || file.object_path}</strong>
+                <strong>{file.display_name || file.storage_path || file.object_path}</strong>
                 <span>{file.bucket_id}</span>
               </div>
               <button
@@ -545,7 +530,12 @@ const AdminPage = ({ user, currentProfile }) => {
                 onClick={() =>
                   confirmDestructive('Delete this file metadata record?') &&
                   runAction(
-                    () => adminDeleteRecord({ targetType: 'file', targetId: file.id, notes: file.object_path }),
+                    () =>
+                      adminDeleteRecord({
+                        targetType: 'file',
+                        targetId: file.id,
+                        notes: file.storage_path || file.object_path,
+                      }),
                     'File metadata deleted and admin action recorded.',
                   )
                 }
@@ -554,8 +544,7 @@ const AdminPage = ({ user, currentProfile }) => {
               </button>
             </article>
           ))}
-        </section>
-      )}
+      </section>
 
       <section className="admin-section">
         <h2>Admin Actions</h2>
