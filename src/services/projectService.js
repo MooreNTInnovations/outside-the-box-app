@@ -24,6 +24,81 @@ const getProjects = async (userId) => {
   }));
 };
 
+const getProjectRoomMessages = async (projectId) => {
+  const roomKeys = [`project-${projectId}`, `project:${projectId}`];
+  const { data: rooms, error: roomsError } = await supabase
+    .from('rooms')
+    .select('id, name, room_key')
+    .in('room_key', roomKeys);
+
+  if (roomsError) throw roomsError;
+  const projectRoom = rooms?.[0];
+  if (!projectRoom) return { room: null, messages: [] };
+
+  const { data: messages, error: messagesError } = await supabase
+    .from('messages')
+    .select('id, room_id, author_id, body, created_at')
+    .eq('room_id', projectRoom.id)
+    .order('created_at', { ascending: true });
+
+  if (messagesError) throw messagesError;
+  return { room: projectRoom, messages: messages || [] };
+};
+
+const getProjectDetail = async ({ projectId, userId }) => {
+  if (!supabase || !projectId) return null;
+
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('id, name, summary, visibility, owner_id, created_at, updated_at')
+    .eq('id', projectId)
+    .maybeSingle();
+
+  if (projectError) throw projectError;
+  if (!project) return null;
+
+  const [
+    { data: members, error: membersError },
+    { count: memberCount, error: memberCountError },
+    { data: files, error: filesError },
+    discussion,
+  ] = await Promise.all([
+    supabase
+      .from('project_members')
+      .select('project_id, user_id, role, created_at')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('project_members')
+      .select('project_id', { count: 'exact', head: true })
+      .eq('project_id', projectId),
+    supabase
+      .from('files')
+      .select('id, bucket_id, object_path, display_name, owner_id, room_id, project_id, created_at')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false }),
+    getProjectRoomMessages(projectId),
+  ]);
+
+  if (membersError) throw membersError;
+  if (memberCountError) throw memberCountError;
+  if (filesError) throw filesError;
+
+  const currentUserMembership =
+    members?.find((membership) => membership.user_id === userId) || null;
+
+  return {
+    project,
+    ownerLabel: project.owner_id,
+    members: members || [],
+    memberCount: memberCount || 0,
+    currentUserMembership,
+    files: files || [],
+    discussionRoom: discussion.room,
+    discussionMessages: discussion.messages,
+  };
+};
+
 const createProject = async ({ ownerId, name, summary, visibility }) => {
   if (!supabase || !ownerId) return null;
 
@@ -107,4 +182,39 @@ const subscribeToProjects = (onChange) => {
   };
 };
 
-export { createProject, getProjects, joinProject, leaveProject, subscribeToProjects };
+const subscribeToProjectDetail = ({ projectId, onChange }) => {
+  if (!supabase || !projectId) return () => {};
+
+  const channel = supabase
+    .channel(`project:${projectId}:detail`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` },
+      onChange,
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'project_members', filter: `project_id=eq.${projectId}` },
+      onChange,
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'files', filter: `project_id=eq.${projectId}` },
+      onChange,
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+};
+
+export {
+  createProject,
+  getProjectDetail,
+  getProjects,
+  joinProject,
+  leaveProject,
+  subscribeToProjectDetail,
+  subscribeToProjects,
+};
