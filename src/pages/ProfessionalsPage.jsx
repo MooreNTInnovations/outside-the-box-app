@@ -1,15 +1,110 @@
 import { useEffect, useState } from 'react';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
-import { getProfiles } from '../services/profileService';
+import { getProfileById, getProfiles } from '../services/profileService';
 
 const ProfessionalsPage = () => {
   const [profiles, setProfiles] = useState([]);
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [selectedProfileId, setSelectedProfileId] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     getProfiles().then(setProfiles).catch((err) => setError(err.message));
   }, []);
+
+  const openProfile = async (profileId) => {
+    setError('');
+    setSelectedProfileId(profileId);
+    setLoadingProfile(true);
+
+    try {
+      const record = await getProfileById(profileId);
+      setSelectedProfile(record);
+    } catch (err) {
+      setError(err.message);
+      setSelectedProfile(null);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const backToDirectory = () => {
+    setSelectedProfile(null);
+    setSelectedProfileId(null);
+    setError('');
+  };
+
+  const displayValue = (value) => value || 'Not provided';
+
+  const renderProfileName = (profile) =>
+    profile.full_name || profile.email || 'Profile record';
+
+  if (selectedProfileId) {
+    const tags = selectedProfile?.expertise_tags || [];
+
+    return (
+      <>
+        <PageHeader title="Profile Detail" eyebrow="Professional Directory">
+          Live profile data from Supabase.
+        </PageHeader>
+        {error && <p className="service-error">{error}</p>}
+        <button type="button" onClick={backToDirectory}>
+          Back to Professionals
+        </button>
+        {loadingProfile && <p className="loading-note">Loading profile...</p>}
+        {!loadingProfile && !selectedProfile && (
+          <EmptyState message="Profile record is not available." />
+        )}
+        {!loadingProfile && selectedProfile && (
+          <section className="detail-panel profile-detail-panel">
+            <h2>{displayValue(selectedProfile.full_name)}</h2>
+            <dl className="detail-list">
+              <div>
+                <dt>Email</dt>
+                <dd>{displayValue(selectedProfile.email)}</dd>
+              </div>
+              <div>
+                <dt>Title</dt>
+                <dd>{displayValue(selectedProfile.title)}</dd>
+              </div>
+              <div>
+                <dt>Organization</dt>
+                <dd>{displayValue(selectedProfile.organization)}</dd>
+              </div>
+              <div>
+                <dt>Discipline</dt>
+                <dd>{displayValue(selectedProfile.discipline)}</dd>
+              </div>
+              <div>
+                <dt>Bio</dt>
+                <dd>{displayValue(selectedProfile.bio)}</dd>
+              </div>
+              <div>
+                <dt>Expertise Tags</dt>
+                <dd>
+                  {tags.length > 0 ? (
+                    <span className="tag-list">
+                      {tags.map((tag) => (
+                        <span key={tag}>{tag}</span>
+                      ))}
+                    </span>
+                  ) : (
+                    'Not provided'
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Role</dt>
+                <dd>{displayValue(selectedProfile.role)}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
+      </>
+    );
+  }
 
   return (
     <>
@@ -22,7 +117,15 @@ const ProfessionalsPage = () => {
         {profiles.map((profile) => (
           <article className="record-card" key={profile.id}>
             <div>
-              <h2>{profile.full_name || profile.id}</h2>
+              <h2>
+                <button
+                  className="profile-name-button"
+                  type="button"
+                  onClick={() => openProfile(profile.id)}
+                >
+                  {renderProfileName(profile)}
+                </button>
+              </h2>
               {profile.discipline && <span>{profile.discipline}</span>}
             </div>
             {profile.title && <p>{profile.title}</p>}

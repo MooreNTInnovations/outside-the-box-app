@@ -54,6 +54,22 @@ button:disabled {
   opacity: 0.65;
 }
 
+.profile-name-button {
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  font-weight: 800;
+  text-align: left;
+}
+
+.profile-name-button:hover,
+.profile-name-button:focus-visible {
+  color: var(--gold);
+  outline: none;
+}
+
 input,
 select,
 textarea {
@@ -575,6 +591,25 @@ label {
 
 .project-composer {
   margin-bottom: 1rem;
+}
+
+.profile-detail-panel {
+  max-width: 760px;
+  margin-top: 1rem;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.tag-list span {
+  border: 1px solid rgba(230, 189, 101, 0.34);
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  color: var(--gold);
+  background: rgba(230, 189, 101, 0.08);
 }
 
 @media (max-width: 920px) {

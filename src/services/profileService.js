@@ -13,7 +13,7 @@ const getProfiles = async () => {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, full_name, title, organization, discipline, expertise_tags, role, updated_at')
+    .select('id, email, full_name, title, organization, discipline, expertise_tags, role, updated_at')
     .order('updated_at', { ascending: false });
 
   if (error) {
@@ -22,6 +22,23 @@ const getProfiles = async () => {
   }
 
   return data || [];
+};
+
+const getProfileById = async (profileId) => {
+  if (!supabase || !profileId) return null;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, title, organization, discipline, bio, expertise_tags, role, updated_at')
+    .eq('id', profileId)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingExpertiseTagsColumn(error)) throw profileSchemaError();
+    throw error;
+  }
+
+  return data;
 };
 
 const getCurrentProfile = async (userId) => {
@@ -72,4 +89,4 @@ const updateCurrentProfile = async (userId, updates) => {
   return data;
 };
 
-export { getCurrentProfile, getProfiles, updateCurrentProfile };
+export { getCurrentProfile, getProfileById, getProfiles, updateCurrentProfile };
