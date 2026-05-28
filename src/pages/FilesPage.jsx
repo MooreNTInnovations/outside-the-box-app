@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import EmptyState from '../components/EmptyState';
+import FileRecord from '../components/FileRecord';
 import PageHeader from '../components/PageHeader';
-import { getFiles, subscribeToFiles, uploadWorkspaceFile } from '../services/fileService';
+import { acceptedUploadTypes, getFiles, subscribeToFiles, uploadWorkspaceFile } from '../services/fileService';
 import { createModerationReport } from '../services/moderationService';
 
 const FilesPage = ({ user, focusRequest }) => {
@@ -119,6 +120,7 @@ const FilesPage = ({ user, focusRequest }) => {
         <label>
           Upload file
           <input
+            accept={acceptedUploadTypes}
             type="file"
             onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
             ref={fileInputRef}
@@ -143,18 +145,7 @@ const FilesPage = ({ user, focusRequest }) => {
       {files.length === 0 && <EmptyState message="No shared files available yet." />}
       <section className="record-grid">
         {files.map((file) => (
-          <article className="record-card" key={file.id}>
-            <div>
-              <h2>{file.display_name || file.storage_path || file.object_path}</h2>
-              <span>{file.bucket_id}</span>
-            </div>
-            <p>{file.storage_path || file.object_path}</p>
-            {file.mime_type && <p>{file.mime_type}</p>}
-            {file.size_bytes != null && <p>{file.size_bytes} bytes</p>}
-            <button className="text-button" type="button" onClick={() => setReportTarget(file)}>
-              Report a Concern
-            </button>
-          </article>
+          <FileRecord file={file} key={file.id} onReport={setReportTarget} />
         ))}
       </section>
     </>

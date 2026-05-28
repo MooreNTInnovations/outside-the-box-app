@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Avatar from '../components/Avatar';
 import EmptyState from '../components/EmptyState';
+import FileRecord from '../components/FileRecord';
 import PageHeader from '../components/PageHeader';
 import {
   createProject,
@@ -12,7 +13,7 @@ import {
   subscribeToProjectDetail,
   subscribeToProjects,
 } from '../services/projectService';
-import { uploadWorkspaceFile } from '../services/fileService';
+import { acceptedUploadTypes, uploadWorkspaceFile } from '../services/fileService';
 import { createModerationReport } from '../services/moderationService';
 
 const emptyDetail = {
@@ -446,6 +447,7 @@ const ProjectsPage = ({ user, focusRequest }) => {
                 <label>
                   Upload file
                   <input
+                    accept={acceptedUploadTypes}
                     type="file"
                     onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
                   />
@@ -459,23 +461,12 @@ const ProjectsPage = ({ user, focusRequest }) => {
                 </button>
               </form>
               {detail.files.map((file) => (
-                <article className="record-card" key={file.id}>
-                  <div>
-                    <h3>{file.display_name || file.storage_path || file.object_path}</h3>
-                    <span>{new Date(file.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <p>{file.storage_path || file.object_path}</p>
-                  {file.mime_type && <p>{file.mime_type}</p>}
-                  {file.size_bytes != null && <p>{file.size_bytes} bytes</p>}
-                  <p>Owner: {file.ownerLabel}</p>
-                  <button
-                    className="text-button"
-                    type="button"
-                    onClick={() => setReportTarget({ type: 'file', id: file.id })}
-                  >
-                    Report a Concern
-                  </button>
-                </article>
+                <FileRecord
+                  file={file}
+                  key={file.id}
+                  ownerLabel={file.ownerLabel}
+                  onReport={() => setReportTarget({ type: 'file', id: file.id })}
+                />
               ))}
             </article>
             <article className="detail-panel">
