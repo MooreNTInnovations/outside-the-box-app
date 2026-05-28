@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AdminPage from '../pages/AdminPage';
 import ChatPage from '../pages/ChatPage';
 import FilesPage from '../pages/FilesPage';
@@ -7,6 +7,7 @@ import OAuthConsentPage from '../pages/OAuthConsentPage';
 import ProfessionalsPage from '../pages/ProfessionalsPage';
 import ProfilePage from '../pages/ProfilePage';
 import ProjectsPage from '../pages/ProjectsPage';
+import { getCurrentProfile } from '../services/profileService';
 import BrandMark from './BrandMark';
 
 const navItems = [
@@ -23,6 +24,20 @@ const navItems = [
 
 const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
   const [activePage, setActivePage] = useState(initialPage);
+  const [currentProfile, setCurrentProfile] = useState(null);
+
+  useEffect(() => {
+    getCurrentProfile(user?.id)
+      .then(setCurrentProfile)
+      .catch(() => setCurrentProfile(null));
+  }, [user?.id]);
+
+  const visibleNavItems = useMemo(() => {
+    const canViewAdmin =
+      currentProfile?.role === 'admin' || currentProfile?.role === 'moderator';
+
+    return navItems.filter((item) => item.key !== 'admin' || canViewAdmin);
+  }, [currentProfile?.role]);
 
   const activeView = useMemo(() => {
     if (activePage.endsWith('-chat')) {
@@ -31,24 +46,24 @@ const WorkspaceShell = ({ user, signOut, initialPage = 'home' }) => {
     }
 
     const views = {
-      home: <HomePage />,
+      home: <HomePage user={user} currentProfile={currentProfile} />,
       projects: <ProjectsPage user={user} />,
       professionals: <ProfessionalsPage />,
       files: <FilesPage user={user} />,
       profile: <ProfilePage user={user} />,
-      admin: <AdminPage />,
+      admin: <AdminPage user={user} currentProfile={currentProfile} />,
       'oauth-consent': <OAuthConsentPage user={user} />,
     };
 
     return views[activePage] || views.home;
-  }, [activePage, user]);
+  }, [activePage, currentProfile, user]);
 
   return (
     <div className="workspace">
       <aside className="sidebar">
         <BrandMark compact />
         <nav className="workspace-nav" aria-label="Workspace navigation">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <button
               key={item.key}
               className={activePage === item.key ? 'active' : ''}

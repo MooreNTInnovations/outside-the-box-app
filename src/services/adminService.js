@@ -1,0 +1,151 @@
+import { supabase } from './supabaseClient';
+
+const requireSupabase = () => {
+  if (!supabase) throw new Error('Supabase is not configured.');
+  return supabase;
+};
+
+const readTable = async (table, select, orderColumn = 'created_at') => {
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from(table)
+    .select(select)
+    .order(orderColumn, { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+};
+
+const getAdminSnapshot = async (userId) => {
+  const client = requireSupabase();
+  const { data: currentProfile, error: profileError } = await client
+    .from('profiles')
+    .select('id, full_name, role')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (profileError) throw profileError;
+
+  const canViewAdmin =
+    currentProfile?.role === 'admin' || currentProfile?.role === 'moderator';
+
+  if (!canViewAdmin) {
+    return {
+      currentProfile,
+      profiles: [],
+      reports: [],
+      projects: [],
+      rooms: [],
+      messages: [],
+      roomMembers: [],
+      projectMembers: [],
+      files: [],
+      adminActions: [],
+    };
+  }
+
+  const [
+    profiles,
+    reports,
+    projects,
+    rooms,
+    messages,
+    roomMembers,
+    projectMembers,
+    files,
+    adminActions,
+  ] = await Promise.all([
+    readTable('profiles', 'id, full_name, discipline, organization, title, role, updated_at', 'updated_at'),
+    readTable('reports', 'id, reporter_id, target_type, target_id, reason, status, created_at'),
+    readTable('projects', 'id, owner_id, name, summary, visibility, created_at, updated_at', 'updated_at'),
+    readTable('rooms', 'id, room_key, name, description, is_public, is_system, created_at'),
+    readTable('messages', 'id, room_id, author_id, body, created_at'),
+    readTable('room_members', 'room_id, user_id, role, created_at'),
+    readTable('project_members', 'project_id, user_id, role, created_at'),
+    readTable('files', 'id, bucket_id, object_path, display_name, owner_id, room_id, project_id, created_at'),
+    readTable('admin_actions', 'id, actor_id, action_type, target_type, target_id, notes, created_at'),
+  ]);
+
+  return {
+    currentProfile,
+    profiles,
+    reports,
+    projects,
+    rooms,
+    messages,
+    roomMembers,
+    projectMembers,
+    files,
+    adminActions,
+  };
+};
+
+const rpc = async (name, params) => {
+  const client = requireSupabase();
+  const { data, error } = await client.rpc(name, params);
+  if (error) throw error;
+  return data;
+};
+
+const adminSetProfileRole = ({ userId, role }) =>
+  rpc('admin_set_profile_role', { target_user_id: userId, next_role: role });
+
+const adminUpdateReportStatus = ({ reportId, status }) =>
+  rpc('admin_update_report_status', { target_report_id: reportId, next_status: status });
+
+const adminCreateRoom = ({ roomKey, name, description, isPublic }) =>
+  rpc('admin_create_room', {
+    new_room_key: roomKey,
+    new_name: name,
+    new_description: description || null,
+    new_is_public: isPublic,
+  });
+
+const adminUpdateRoom = ({ roomId, name, description, isPublic }) =>
+  rpc('admin_update_room', {
+    target_room_id: roomId,
+    next_name: name,
+    next_description: description || null,
+    next_is_public: isPublic,
+  });
+
+const adminUpdateProject = ({ projectId, name, summary, visibility }) =>
+  rpc('admin_update_project', {
+    target_project_id: projectId,
+    next_name: name,
+    next_summary: summary || null,
+    next_visibility: visibility,
+  });
+
+const adminDeleteRecord = ({ targetType, targetId, notes }) =>
+  rpc('admin_delete_record', {
+    target_type: targetType,
+    target_id: targetId,
+    action_notes: notes || null,
+  });
+
+const adminRemoveRoomMembership = ({ roomId, userId, notes }) =>
+  rpc('admin_remove_room_membership', {
+    target_room_id: roomId,
+    target_user_id: userId,
+    action_notes: notes || null,
+  });
+
+const adminRemoveProjectMembership = ({ projectId, userId, notes }) =>
+  rpc('admin_remove_project_membership', {
+    target_project_id: projectId,
+    target_user_id: userId,
+    action_notes: notes || null,
+  });
+
+export {
+  adminCreateRoom,
+  adminDeleteRecord,
+  adminRemoveProjectMembership,
+  adminRemoveRoomMembership,
+  adminSetProfileRole,
+  adminUpdateProject,
+  adminUpdateReportStatus,
+  adminUpdateRoom,
+  getAdminSnapshot,
+};

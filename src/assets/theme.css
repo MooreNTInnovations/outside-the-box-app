@@ -65,6 +65,10 @@ textarea {
   background: rgba(5, 9, 20, 0.74);
 }
 
+input[type="checkbox"] {
+  width: auto;
+}
+
 label {
   display: grid;
   gap: 0.45rem;
@@ -100,6 +104,90 @@ label {
   border-radius: 8px;
   background: rgba(10, 18, 34, 0.82);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+}
+
+.dashboard-grid,
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.dashboard-card,
+.action-card,
+.admin-section,
+.admin-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(10, 18, 34, 0.78);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-card,
+.action-card {
+  padding: 1rem;
+}
+
+.dashboard-card span,
+.action-card p {
+  color: var(--muted);
+}
+
+.dashboard-card strong {
+  display: block;
+  margin: 0.55rem 0;
+  color: var(--gold);
+  font-size: 2rem;
+}
+
+.dashboard-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.admin-section {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.admin-section h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.admin-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(140px, 220px) auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.85rem;
+}
+
+.admin-row div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.admin-row span,
+.admin-row time {
+  color: var(--muted);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.inline-control {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.danger-button {
+  border-color: rgba(255, 141, 141, 0.5);
+  background: rgba(255, 141, 141, 0.12);
 }
 
 .launch-copy {
@@ -360,6 +448,10 @@ label {
 
   .workspace-nav {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-row {
+    grid-template-columns: 1fr;
   }
 }
 
